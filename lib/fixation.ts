@@ -298,3 +298,98 @@ export function projectIncrements(
   }
   return rows;
 }
+
+/**
+ * প্রথম নিয়োগ প্রাপ্তিতে বেতন — অনুচ্ছেদ ১০
+ *
+ *  • অনুচ্ছেদ ১০(১): ১ জুলাই ২০২৬ তারিখে বা উহার পরে নিয়োগপ্রাপ্ত কর্মচারীকে
+ *    নিয়োগকৃত পদের জন্য নির্ধারিত স্কেলে প্রারম্ভিক বেতন প্রদান করা হইবে; প্রযোজ্য
+ *    ক্ষেত্রে ১ বা ২টি অগ্রিম বেতনবৃদ্ধি (increment) যোগ হইবে।
+ *  • অনুচ্ছেদ ১০(৪): ১ জুলাই ২০২৬ হইতে ৩০ জুন ২০২৭ তারিখ পর্যন্ত প্রথম
+ *    নিয়োগপ্রাপ্তগণ — তিনি ৩০ জুন ২০২৬ তারিখে যোগদান করিলে বর্তমান বেতন হিসাবে
+ *    যাহা প্রাপ্য হইতেন উহার সহিত জাতীয় বেতনস্কেল, ২০২৬ অনুযায়ী নির্ধারিত বেতন ও
+ *    বর্তমান বেতনের পার্থক্যের প্রযোজ্য শতাংশ [অনুচ্ছেদ ১(৩) বিধান অনুযায়ী] যোগ
+ *    করিয়া প্রাপ্য হইবেন।
+ */
+
+export type JoinPhase = 'phase1' | 'phase2' | 'phase3';
+
+export type NewAppointmentResult = {
+  grade: GradeNo;
+  advanceIncrements: number;
+  joinPhase: JoinPhase;
+  /** জাতীয় বেতনস্কেল, ২০২৬ এ প্রাপ্য মূল বেতন (অগ্রিম ইনক্রিমেন্টসহ) */
+  newBasic: number;
+  /** ৩০ জুন ২০২৬ তারিখে যোগদান করিলে বর্তমান স্কেলে যাহা প্রাপ্য হইতেন */
+  equivalentCurrent: number;
+  difference: number;
+  percent: number;
+  /** যোগদানের সময় প্রকৃতপক্ষে প্রদেয় মূল বেতন */
+  payable: number;
+  atMax: boolean;
+  notes: string[];
+};
+
+export function calculateNewAppointment(
+  grade: GradeNo,
+  advanceIncrements: number,
+  joinPhase: JoinPhase,
+): NewAppointmentResult {
+  const scale2015 = SCALE_2015[grade];
+  const scale2026 = SCALE_2026[grade];
+  const notes: string[] = [];
+
+  const adv = Math.max(0, Math.min(Math.floor(advanceIncrements), 2));
+  const idx = Math.min(adv, scale2026.length - 1);
+  const newBasic = scale2026[idx];
+  const equivalentCurrent = scale2015[Math.min(adv, scale2015.length - 1)];
+  const difference = newBasic - equivalentCurrent;
+
+  const isUpperGrade = grade <= 9;
+  const percent =
+    joinPhase === 'phase1'
+      ? isUpperGrade
+        ? 40
+        : 50
+      : joinPhase === 'phase2'
+        ? isUpperGrade
+          ? 70
+          : 75
+        : 100;
+
+  const payable =
+    joinPhase === 'phase3'
+      ? newBasic
+      : Math.round(equivalentCurrent + (difference * percent) / 100);
+
+  notes.push(
+    `অনুচ্ছেদ ১০(১): ${grade} নং গ্রেডের প্রারম্ভিক ধাপ ${scale2026[0]} টাকা।`,
+  );
+  if (adv > 0) {
+    notes.push(
+      `অনুচ্ছেদ ১০(১)(ক)–(গ): ${adv}টি অগ্রিম বেতনবৃদ্ধি যোগ করিয়া মূল বেতন ${newBasic} টাকা।`,
+    );
+  }
+  if (joinPhase === 'phase3') {
+    notes.push(
+      'অনুচ্ছেদ ১(৩)(গ): ১ জুলাই ২০২৭ তারিখ হইতে মূল বেতন শতভাগ প্রদেয়।',
+    );
+  } else {
+    notes.push(
+      `অনুচ্ছেদ ১০(৪): ৩০ জুন ২০২৬ তারিখে যোগদান করিলে প্রাপ্য হইতেন ${equivalentCurrent} টাকা; পার্থক্য ${difference} টাকার ${percent}% যোগ করিয়া প্রদেয় ${payable} টাকা।`,
+    );
+  }
+
+  return {
+    grade,
+    advanceIncrements: adv,
+    joinPhase,
+    newBasic,
+    equivalentCurrent,
+    difference,
+    percent,
+    payable,
+    atMax: idx === scale2026.length - 1,
+    notes,
+  };
+}

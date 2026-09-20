@@ -1,4 +1,9 @@
-import { calculateFixation, nextStep } from './fixation.ts';
+import {
+  calculateFixation,
+  calculateNewAppointment,
+  nextStep,
+} from './fixation.ts';
+import { buildPayRow } from './deductions.ts';
 import { calculatePension } from './pension.ts';
 import { SCALE_2015, SCALE_2026 } from './scales.ts';
 import {
@@ -104,6 +109,45 @@ eq('বিশেষ সুবিধা — পেনশনভোগী ন্য
   eq('সমন্বয় — ৩ মাসের গ্রস বকেয়া', im.grossArrear, 6905 * 3);
   eq('সমন্বয় — সমন্বয়যোগ্য অঙ্ক', im.adjustment, 2069 * 3);
   eq('সমন্বয় — নিট বকেয়া', im.netArrear, (6905 - 2069) * 3);
+}
+
+// ── প্রথম নিয়োগে বেতন (অনুচ্ছেদ ১০) ─────────────────────────────────
+// ৯ম গ্রেড, অগ্রিম ইনক্রিমেন্ট নাই, ১ম পর্যায়ে যোগদান → ২২০০০ + ৪০% × (৪৪০০০−২২০০০)
+{
+  const na = calculateNewAppointment(9, 0, 'phase1');
+  eq('নূতন নিয়োগ — নূতন মূল বেতন', na.newBasic, 44000);
+  eq('নূতন নিয়োগ — সমতুল্য বর্তমান বেতন', na.equivalentCurrent, 22000);
+  eq('নূতন নিয়োগ — হার (৯ম গ্রেড)', na.percent, 40);
+  eq('নূতন নিয়োগ — প্রদেয়', na.payable, 22000 + Math.round(22000 * 0.4));
+}
+// ৯ম গ্রেড, ১টি অগ্রিম ইনক্রিমেন্ট → ২য় ধাপ ৪৬২০০, সমতুল্য ২৩১০০
+{
+  const na = calculateNewAppointment(9, 1, 'phase2');
+  eq('নূতন নিয়োগ — ১টি অগ্রিম ইনক্রিমেন্ট', na.newBasic, 46200);
+  eq('নূতন নিয়োগ — সমতুল্য (২য় ধাপ)', na.equivalentCurrent, 23100);
+  eq('নূতন নিয়োগ — হার (২য় পর্যায়)', na.percent, 70);
+}
+// ১ জুলাই ২০২৭ বা পরে যোগদান → শতভাগ
+{
+  const na = calculateNewAppointment(13, 0, 'phase3');
+  eq('নূতন নিয়োগ — ৩য় পর্যায়ে শতভাগ', na.payable, 24000);
+  eq('নূতন নিয়োগ — হার (৩য় পর্যায়)', na.percent, 100);
+}
+// ১০ম–২০তম গ্রেডে ১ম পর্যায়ের হার ৫০%
+eq('নূতন নিয়োগ — হার (১৩তম গ্রেড)', calculateNewAppointment(13, 0, 'phase1').percent, 50);
+
+// ── কর্তন ও নিট বেতন ────────────────────────────────────────────────
+{
+  const row = buildPayRow('', 32000, 16950, 0, { gpfPercent: 10, otherDeduction: 500 });
+  eq('কর্তন — গ্রস', row.gross, 48950);
+  eq('কর্তন — জিপিএফ ১০%', row.gpf, 3200);
+  eq('কর্তন — মোট কর্তন', row.deduction, 3700);
+  eq('কর্তন — নিট', row.net, 45250);
+}
+{
+  const row = buildPayRow('', 16000, 12500, 2400, { gpfPercent: 0, otherDeduction: 0 });
+  eq('কর্তন — বিশেষ সুবিধাসহ গ্রস', row.gross, 30900);
+  eq('কর্তন — কর্তন শূন্য হইলে নিট = গ্রস', row.net, 30900);
 }
 
 // স্কেল ডেটা অখণ্ডতা

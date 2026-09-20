@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   GRADES,
   GradeNo,
@@ -8,7 +8,13 @@ import {
   SCALE_2026,
   FIXED_PAY_POSTS,
 } from '@/lib/scales';
-import { calculateFixation, SpecialPostId } from '@/lib/fixation';
+import {
+  calculateFixation,
+  calculateNewAppointment,
+  JoinPhase,
+  SpecialPostId,
+} from '@/lib/fixation';
+import { buildPayRow } from '@/lib/deductions';
 import {
   SPECIAL_BENEFIT,
   specialBenefitForEmployee,
@@ -26,6 +32,59 @@ export default function PayFixationTool() {
   const [arrearMonths, setArrearMonths] = useState('৩');
   const [sbMode, setSbMode] = useState<'auto' | 'manual'>('auto');
   const [sbManual, setSbManual] = useState('');
+  const [mode, setMode] = useState<'existing' | 'new'>('existing');
+  const [advInc, setAdvInc] = useState('০');
+  const [joinPhase, setJoinPhase] = useState<JoinPhase>('phase1');
+  const [monthlyAllowance, setMonthlyAllowance] = useState('');
+  const [gpfPercent, setGpfPercent] = useState('');
+  const [otherDeduction, setOtherDeduction] = useState('');
+
+  // ইনপুটসমূহ ব্রাউজারে সংরক্ষিত থাকে, ফলে পরে ফিরিয়া আসিলেও পূরণ করিতে হয় না
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('payscale2026-fixation');
+      if (!raw) return;
+      const v = JSON.parse(raw);
+      if (v.grade) setGrade(v.grade);
+      if (v.basicMode) setBasicMode(v.basicMode);
+      if (typeof v.stepValue === 'number') setStepValue(v.stepValue);
+      if (typeof v.customBasic === 'string') setCustomBasic(v.customBasic);
+      if (typeof v.specialPost === 'string') setSpecialPost(v.specialPost);
+      if (typeof v.withIncrement === 'boolean') setWithIncrement(v.withIncrement);
+      if (typeof v.arrearMonths === 'string') setArrearMonths(v.arrearMonths);
+      if (v.sbMode) setSbMode(v.sbMode);
+      if (typeof v.sbManual === 'string') setSbManual(v.sbManual);
+      if (v.mode) setMode(v.mode);
+      if (typeof v.advInc === 'string') setAdvInc(v.advInc);
+      if (v.joinPhase) setJoinPhase(v.joinPhase);
+      if (typeof v.monthlyAllowance === 'string')
+        setMonthlyAllowance(v.monthlyAllowance);
+      if (typeof v.gpfPercent === 'string') setGpfPercent(v.gpfPercent);
+      if (typeof v.otherDeduction === 'string')
+        setOtherDeduction(v.otherDeduction);
+    } catch {
+      /* সংরক্ষিত তথ্য পড়া না গেলে ডিফল্ট মানই থাকিবে */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'payscale2026-fixation',
+        JSON.stringify({
+          grade, basicMode, stepValue, customBasic, specialPost, withIncrement,
+          arrearMonths, sbMode, sbManual, mode, advInc, joinPhase,
+          monthlyAllowance, gpfPercent, otherDeduction,
+        }),
+      );
+    } catch {
+      /* স্টোরেজ বন্ধ থাকিলে উপেক্ষা করা হয় */
+    }
+  }, [
+    grade, basicMode, stepValue, customBasic, specialPost, withIncrement,
+    arrearMonths, sbMode, sbManual, mode, advInc, joinPhase, monthlyAllowance,
+    gpfPercent, otherDeduction,
+  ]);
 
   const scale2015 = SCALE_2015[grade];
   const scale2026 = SCALE_2026[grade];
@@ -50,6 +109,26 @@ export default function PayFixationTool() {
       ? (autoSB?.amount ?? 0)
       : Math.max(0, parseAmount(sbManual) ?? 0);
 
+  const newAppointment = useMemo(
+    () =>
+      mode === 'new'
+        ? calculateNewAppointment(
+            grade,
+            Math.floor(parseAmount(advInc) ?? 0),
+            joinPhase,
+          )
+        : null,
+    [mode, grade, advInc, joinPhase],
+  );
+
+  const allowance = Math.max(0, parseAmount(monthlyAllowance) ?? 0);
+  const deductions = {
+    gpfPercent: Math.max(0, parseAmount(gpfPercent) ?? 0),
+    otherDeduction: Math.max(0, parseAmount(otherDeduction) ?? 0),
+  };
+  const showTotals =
+    allowance > 0 || deductions.gpfPercent > 0 || deductions.otherDeduction > 0;
+
   const months = Math.max(0, Math.floor(parseAmount(arrearMonths) ?? 0));
   const impact = result
     ? specialBenefitImpact(
@@ -69,9 +148,33 @@ export default function PayFixationTool() {
     <>
       <div className="card">
         <h3>আপনার তথ্য দিন</h3>
+
+        <div className="seg" role="radiogroup" aria-label="কর্মচারীর ধরন">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={mode === 'existing'}
+            onClick={() => setMode('existing')}
+          >
+            ৩০ জুন ২০২৬ এ কর্মরত
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={mode === 'new'}
+            onClick={() => setMode('new')}
+          >
+            ১ জুলাই ২০২৬ বা পরে নিয়োগ
+          </button>
+        </div>
+
         <div className="grid">
           <div className="field">
-            <label htmlFor="grade">বর্তমান গ্রেড (জাতীয় বেতনস্কেল, ২০১৫)</label>
+            <label htmlFor="grade">
+              {mode === 'existing'
+                ? 'বর্তমান গ্রেড (জাতীয় বেতনস্কেল, ২০১৫)'
+                : 'নিয়োগকৃত পদের গ্রেড'}
+            </label>
             <select
               id="grade"
               value={grade}
@@ -87,10 +190,14 @@ export default function PayFixationTool() {
               ))}
             </select>
             <span className="hint">
-              ৩০ জুন ২০২৬ তারিখে আপনি যে গ্রেডে বেতন আহরণ করিতেছিলেন।
+              {mode === 'existing'
+                ? '৩০ জুন ২০২৬ তারিখে আপনি যে গ্রেডে বেতন আহরণ করিতেছিলেন।'
+                : 'জাতীয় বেতনস্কেল, ২০২৬ এ নিয়োগকৃত পদের গ্রেড।'}
             </span>
           </div>
 
+          {mode === 'existing' && (
+            <>
           <div className="field">
             <label htmlFor="basicMode">মূল বেতন প্রদানের পদ্ধতি</label>
             <select
@@ -148,7 +255,15 @@ export default function PayFixationTool() {
             <select
               id="special"
               value={specialPost}
-              onChange={(e) => setSpecialPost(e.target.value as SpecialPostId | '')}
+              onChange={(e) => {
+                const id = e.target.value as SpecialPostId | '';
+                setSpecialPost(id);
+                const post = FIXED_PAY_POSTS.find((x) => x.id === id);
+                if (post) {
+                  setBasicMode('custom');
+                  setCustomBasic(toBn(post.pay2015));
+                }
+              }}
             >
               <option value="">প্রযোজ্য নহে</option>
               {FIXED_PAY_POSTS.map((p) => (
@@ -214,30 +329,227 @@ export default function PayFixationTool() {
               </span>
             </div>
           )}
+            </>
+          )}
+
+          {mode === 'new' && (
+            <>
+              <div className="field">
+                <label htmlFor="adv">অগ্রিম বেতনবৃদ্ধি (increment) সংখ্যা</label>
+                <select
+                  id="adv"
+                  value={advInc}
+                  onChange={(e) => setAdvInc(e.target.value)}
+                >
+                  <option value="০">০ — কোনও অগ্রিম ইনক্রিমেন্ট নাই</option>
+                  <option value="১">
+                    ১টি — এম.বি.বি.এস./ব্যাচেলর অব আর্কিটেকচার/ইঞ্জিনিয়ারিং ডিগ্রি বা
+                    চিকিৎসা অনুষদের লাইসেন্স
+                  </option>
+                  <option value="২">
+                    ২টি — ইঞ্জিনিয়ারিং/স্থাপত্যবিদ্যায় ডিগ্রি বা মাস্টার্সসহ ফিজিক্যাল
+                    প্ল্যানিং, অথবা আইনে স্নাতক (সম্মান)সহ স্নাতকোত্তর
+                  </option>
+                </select>
+                <span className="hint">
+                  অনুচ্ছেদ ১০(১): কেবল ৯ম গ্রেড (৪৪০০০–১০৫৯০০) বা তদূর্ধ্ব স্কেলের পদে
+                  প্রথম নিয়োগের ক্ষেত্রে প্রযোজ্য। বিসিএস ক্যাডারভুক্ত হিসাবে ৯ম গ্রেডে
+                  সরাসরি নিয়োগপ্রাপ্তগণ ১টি অতিরিক্ত অগ্রিম বেতনবৃদ্ধি পাইবেন।
+                </span>
+              </div>
+
+              <div className="field">
+                <label htmlFor="join">যোগদানের সময়</label>
+                <select
+                  id="join"
+                  value={joinPhase}
+                  onChange={(e) => setJoinPhase(e.target.value as JoinPhase)}
+                >
+                  <option value="phase1">১ জুলাই ২০২৬ – ৩১ ডিসেম্বর ২০২৬</option>
+                  <option value="phase2">১ জানুয়ারি ২০২৭ – ৩০ জুন ২০২৭</option>
+                  <option value="phase3">১ জুলাই ২০২৭ বা তৎপরবর্তী</option>
+                </select>
+                <span className="hint">
+                  অনুচ্ছেদ ১০(৪): ১ জুলাই ২০২৬ – ৩০ জুন ২০২৭ সময়ে নিয়োগপ্রাপ্তগণও
+                  পর্যায়ভিত্তিক হারে বেতন পাইবেন।
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
-        <div style={{ marginTop: 14 }}>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={withIncrement}
-              onChange={(e) => setWithIncrement(e.target.checked)}
-            />
-            <span>
-              অনুচ্ছেদ ৯(২) অনুযায়ী ১ জুলাই ২০২৬ তারিখে ১টি বার্ষিক বেতনবৃদ্ধি
-              (ইনক্রিমেন্ট) যোগ করুন — <strong>সাধারণভাবে প্রযোজ্য</strong>
-            </span>
-          </label>
-        </div>
+        {mode === 'existing' && (
+          <div style={{ marginTop: 14 }}>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={withIncrement}
+                onChange={(e) => setWithIncrement(e.target.checked)}
+              />
+              <span>
+                অনুচ্ছেদ ৯(২) অনুযায়ী ১ জুলাই ২০২৬ তারিখে ১টি বার্ষিক বেতনবৃদ্ধি
+                (ইনক্রিমেন্ট) যোগ করুন — <strong>সাধারণভাবে প্রযোজ্য</strong>
+                <small>
+                  শর্ত: নূতন যোগদানকৃত কর্মচারীর কোয়ালিফাইং চাকরির মেয়াদ ন্যূনতম ৬
+                  (ছয়) মাস হইলে তিনি এই সুবিধা প্রাপ্য হইবেন।
+                </small>
+              </span>
+            </label>
+          </div>
+        )}
+
+        {mode === 'existing' && (
+          <details className="disclosure">
+            <summary>
+              ভাতা ও কর্তন যোগ করিয়া মোট প্রাপ্তি (গ্রস ও নিট) দেখুন — ঐচ্ছিক
+            </summary>
+            <div className="grid" style={{ marginTop: 12 }}>
+              <div className="field">
+                <label htmlFor="mAllow">
+                  ৩০ জুন ২০২৬ তারিখে প্রাপ্ত মোট মাসিক ভাতা (টাকা)
+                </label>
+                <input
+                  id="mAllow"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="যেমন: ১২৫০০"
+                  value={monthlyAllowance}
+                  onChange={(e) => setMonthlyAllowance(e.target.value)}
+                />
+                <span className="hint">
+                  বাড়ি ভাড়া, চিকিৎসা, টিফিন, যাতায়াত ইত্যাদির যোগফল — বিশেষ সুবিধা
+                  বাদে। এই অঙ্কই ৩১ ডিসেম্বর ২০২৭ পর্যন্ত অপরিবর্তিত থাকিবে।
+                </span>
+              </div>
+              <div className="field">
+                <label htmlFor="gpf">জিপিএফ চাঁদা (মূল বেতনের %)</label>
+                <input
+                  id="gpf"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="যেমন: ১০"
+                  value={gpfPercent}
+                  onChange={(e) => setGpfPercent(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="oded">অন্যান্য মাসিক কর্তন (টাকা)</label>
+                <input
+                  id="oded"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="যেমন: ৫০০"
+                  value={otherDeduction}
+                  onChange={(e) => setOtherDeduction(e.target.value)}
+                />
+                <span className="hint">
+                  কল্যাণ তহবিল ও যৌথবীমা, রাজস্ব স্ট্যাম্প, আয়কর, ঋণের কিস্তি ইত্যাদি।
+                </span>
+              </div>
+            </div>
+          </details>
+        )}
       </div>
 
-      {!result && (
+      {mode === 'new' && newAppointment && (
+        <>
+          <div className="headline">
+            <div className="stat">
+              <div className="stat-label">স্কেলের প্রারম্ভিক ধাপ</div>
+              <div className="stat-value">{bnTaka(scale2026[0])}</div>
+              <div className="stat-sub">{bnOrdinal(grade)} গ্রেড</div>
+            </div>
+            <div className="stat">
+              <div className="stat-label">অগ্রিম ইনক্রিমেন্টসহ মূল বেতন</div>
+              <div className="stat-value">{bnTaka(newAppointment.newBasic)}</div>
+              <div className="stat-sub">
+                {toBn(newAppointment.advanceIncrements)}টি অগ্রিম ইনক্রিমেন্ট
+              </div>
+            </div>
+            <div className="stat">
+              <div className="stat-label">যোগদানকালে প্রদেয় মূল বেতন</div>
+              <div className="stat-value brand">
+                {bnTaka(newAppointment.payable)}
+              </div>
+              <div className="stat-sub">
+                পর্যায়ভিত্তিক হার {toBn(newAppointment.percent)}%
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3>প্রথম নিয়োগে বেতন নির্ধারণ (অনুচ্ছেদ ১০)</h3>
+            <div className="table-wrap stack">
+              <table>
+                <thead>
+                  <tr>
+                    <th>বিবরণ</th>
+                    <th className="num">টাকা</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>জাতীয় বেতনস্কেল, ২০২৬ এ নির্ধারিত মূল বেতন</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(newAppointment.newBasic)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      ৩০ জুন ২০২৬ তারিখে যোগদান করিলে বর্তমান স্কেলে প্রাপ্য হইতেন
+                    </td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(newAppointment.equivalentCurrent)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>পার্থক্য</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(newAppointment.difference)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      পার্থক্যের প্রযোজ্য অংশ ({toBn(newAppointment.percent)}%)
+                    </td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(
+                        newAppointment.payable -
+                          newAppointment.equivalentCurrent,
+                      )}
+                    </td>
+                  </tr>
+                  <tr className="total">
+                    <td>যোগদানকালে প্রদেয় মূল বেতন</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(newAppointment.payable)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="alert alert-info" style={{ marginTop: 12 }}>
+              অনুচ্ছেদ ১২(২): ১ জুলাই ২০২৬ হইতে ৩১ ডিসেম্বর ২০২৭ পর্যন্ত সময়ে
+              নবনিয়োগপ্রাপ্ত কর্মচারীগণ ৩০ জুন ২০২৬ তারিখে নিয়োগপ্রাপ্ত হইলে যে হারে
+              বা পরিমাণে ভাতাদি প্রাপ্ত হইতেন, সেই হারে বা পরিমাণে ৩১ ডিসেম্বর ২০২৭
+              তারিখ পর্যন্ত আহরণ করিবেন।
+            </div>
+            <ul className="note-list" style={{ marginTop: 12 }}>
+              {newAppointment.notes.map((n, i) => (
+                <li key={i}>{n}</li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+
+      {mode === 'existing' && !result && (
         <div className="alert alert-info">
           হিসাব দেখিতে গ্রেড ও ৩০ জুন ২০২৬ তারিখের মূল বেতন নির্বাচন করুন।
         </div>
       )}
 
-      {result && (
+      {mode === 'existing' && result && (
         <>
           {result.warnings.map((w, i) => (
             <div className="alert alert-warn" key={i}>
@@ -488,6 +800,120 @@ export default function PayFixationTool() {
               ও ১২।
             </div>
           </div>
+
+          {showTotals && (
+            <div className="card">
+              <h3>পর্যায়ভিত্তিক মোট প্রাপ্তি — গ্রস ও নিট</h3>
+              <p style={{ marginTop: -6, color: 'var(--ink-soft)', fontSize: '.92rem' }}>
+                মাসিক ভাতা {bnTaka(allowance)} ৩১ ডিসেম্বর ২০২৭ পর্যন্ত অপরিবর্তিত
+                থাকিবে (অনুচ্ছেদ ১(৩)(ঞ))। ১ জানুয়ারি ২০২৮ হইতে নূতন হারে ভাতার হিসাব
+                “মাসিক বেতন ও ভাতা” পাতায় দেখুন।
+              </p>
+              <div className="table-wrap stack">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>সময়কাল</th>
+                      <th className="num">মূল বেতন</th>
+                      <th className="num">ভাতাদি</th>
+                      <th className="num">বিশেষ সুবিধা</th>
+                      <th className="num">গ্রস</th>
+                      <th className="num">কর্তন</th>
+                      <th className="num">নিট</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      buildPayRow(
+                        '৩০ জুন ২০২৬ পর্যন্ত (বর্তমান)',
+                        result.currentBasic,
+                        allowance,
+                        specialBenefit,
+                        deductions,
+                      ),
+                      buildPayRow(
+                        '১ জুলাই ২০২৬ – ৩১ ডিসেম্বর ২০২৬',
+                        result.phase1Pay,
+                        allowance,
+                        0,
+                        deductions,
+                      ),
+                      buildPayRow(
+                        '১ জানুয়ারি ২০২৭ – ৩০ জুন ২০২৭',
+                        result.phase2Pay,
+                        allowance,
+                        0,
+                        deductions,
+                      ),
+                      buildPayRow(
+                        '১ জুলাই ২০২৭ – ৩১ ডিসেম্বর ২০২৭',
+                        result.phase3Pay,
+                        allowance,
+                        0,
+                        deductions,
+                      ),
+                    ].map((row, i) => (
+                      <tr key={row.label} className={i === 0 ? '' : undefined}>
+                        <td>{row.label}</td>
+                        <td className="num" data-label="মূল বেতন">
+                          {bnNumber(row.basic)}
+                        </td>
+                        <td className="num" data-label="ভাতাদি">
+                          {bnNumber(row.allowance)}
+                        </td>
+                        <td className="num" data-label="বিশেষ সুবিধা">
+                          {row.specialBenefit > 0
+                            ? bnNumber(row.specialBenefit)
+                            : '—'}
+                        </td>
+                        <td className="num" data-label="গ্রস">
+                          <strong>{bnNumber(row.gross)}</strong>
+                        </td>
+                        <td className="num" data-label="কর্তন">
+                          {row.deduction > 0 ? `− ${bnNumber(row.deduction)}` : '—'}
+                        </td>
+                        <td className="num" data-label="নিট">
+                          <strong>{bnNumber(row.net)}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {(() => {
+                const now = buildPayRow(
+                  '',
+                  result.currentBasic,
+                  allowance,
+                  specialBenefit,
+                  deductions,
+                );
+                const p1 = buildPayRow(
+                  '',
+                  result.phase1Pay,
+                  allowance,
+                  0,
+                  deductions,
+                );
+                const change = p1.net - now.net;
+                return (
+                  <div
+                    className={
+                      'alert ' + (change >= 0 ? 'alert-info' : 'alert-danger')
+                    }
+                    style={{ marginTop: 12 }}
+                  >
+                    ১ম পর্যায়ে (১ জুলাই ২০২৬ হইতে) হাতে পাওয়া <strong>নিট</strong>{' '}
+                    বেতনের প্রকৃত পরিবর্তন:{' '}
+                    <strong>
+                      {change >= 0 ? '+' : '−'} {bnTaka(Math.abs(change))}
+                    </strong>{' '}
+                    প্রতি মাসে (বিশেষ সুবিধা বিলুপ্তি হিসাবে ধরিয়া)।
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           <div className="card">
             <h3>বিশেষ সুবিধা বিলুপ্তি ও সমন্বয় (অনুচ্ছেদ ১(৩)(ট) ও (ঠ))</h3>
