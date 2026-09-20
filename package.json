@@ -1,0 +1,24 @@
+{
+  "name": "jatiyo-betonscale-2026-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "জাতীয় বেতনস্কেল ২০২৬ (চাকরি (বেতন ও ভাতাদি) আদেশ, ২০২৬) ভিত্তিক সম্পূর্ণ বেতন, ভাতা ও পেনশন ক্যালকুলেটর",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "verify": "node scripts/run-verify.mjs"
+  },
+  "dependencies": {
+    "next": "15.5.4",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.2",
+    "@types/react-dom": "19.0.2",
+    "typescript": "5.7.2"
+  }
+}
