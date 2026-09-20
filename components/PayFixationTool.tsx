@@ -310,7 +310,7 @@ export default function PayFixationTool() {
 
           <div className="card">
             <h3>ধাপে ধাপে হিসাব</h3>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
@@ -322,47 +322,59 @@ export default function PayFixationTool() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>১</td>
+                    <td data-label="ক্রম">১</td>
                     <td>৩০ জুন ২০২৬ তারিখে আহরিত/প্রাপ্য মূল বেতন</td>
-                    <td className="num">{bnNumber(result.currentBasic)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ২(খ)</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.currentBasic)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ২(খ)</td>
                   </tr>
                   {!result.isSpecialFixed && (
                     <>
                       <tr>
-                        <td>২</td>
+                        <td data-label="ক্রম">২</td>
                         <td>বর্তমান বেতনস্কেলের প্রারম্ভিক ধাপ</td>
-                        <td className="num">{bnNumber(result.scale2015[0])}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৩(১)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.scale2015[0])}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৩(১)</td>
                       </tr>
                       <tr>
-                        <td>৩</td>
+                        <td data-label="ক্রম">৩</td>
                         <td>পার্থক্য (ক্রম ১ − ক্রম ২)</td>
-                        <td className="num">{bnNumber(result.difference)}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৫(খ)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.difference)}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৫(খ)</td>
                       </tr>
                       <tr>
-                        <td>৪</td>
+                        <td data-label="ক্রম">৪</td>
                         <td>জাতীয় বেতনস্কেল, ২০২৬ এর অনুরূপ স্কেলের প্রারম্ভিক ধাপ</td>
-                        <td className="num">{bnNumber(result.scale2026[0])}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৩(১)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.scale2026[0])}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৩(১)</td>
                       </tr>
                       <tr>
-                        <td>৫</td>
+                        <td data-label="ক্রম">৫</td>
                         <td>যোগফল (ক্রম ৪ + ক্রম ৩)</td>
-                        <td className="num">{bnNumber(result.provisional)}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৫(খ)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.provisional)}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৫(খ)</td>
                       </tr>
                       <tr>
-                        <td>৬</td>
+                        <td data-label="ক্রম">৬</td>
                         <td>
                           নির্ধারিত বেতন —{' '}
                           {result.fixedExactMatch
                             ? 'যোগফলের সমান ধাপ পাওয়া গিয়াছে'
                             : 'সমান ধাপ না থাকায় পরবর্তী উচ্চতর ধাপ'}
                         </td>
-                        <td className="num">{bnNumber(result.fixedPay)}</td>
-                        <td className="rule-ref">
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.fixedPay)}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">
                           অনুচ্ছেদ ৫(খ)({result.fixedExactMatch ? 'অ' : 'আ'})
                         </td>
                       </tr>
@@ -370,17 +382,21 @@ export default function PayFixationTool() {
                   )}
                   {result.incrementApplied && (
                     <tr>
-                      <td>{result.isSpecialFixed ? '২' : '৭'}</td>
+                      <td data-label="ক্রম">{result.isSpecialFixed ? '২' : '৭'}</td>
                       <td>১ জুলাই ২০২৬ তারিখে ১টি বার্ষিক বেতনবৃদ্ধি (পরবর্তী ধাপ)</td>
-                      <td className="num">{bnNumber(result.newBasic)}</td>
-                      <td className="rule-ref">অনুচ্ছেদ ৯(২)</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(result.newBasic)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৯(২)</td>
                     </tr>
                   )}
                   <tr className="total">
-                    <td />
+                    <td className="hide-sm" />
                     <td>জাতীয় বেতনস্কেল, ২০২৬ এ নির্ধারিত মূল বেতন</td>
-                    <td className="num">{bnNumber(result.newBasic)}</td>
-                    <td />
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.newBasic)}
+                    </td>
+                    <td className="hide-sm" />
                   </tr>
                 </tbody>
               </table>
@@ -394,7 +410,7 @@ export default function PayFixationTool() {
               হইবে। আপনার গ্রেড {bnOrdinal(result.grade)} হওয়ায় হার{' '}
               {toBn(result.phase1Percent)}% ও {toBn(result.phase2Percent)}%।
             </p>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
@@ -440,14 +456,21 @@ export default function PayFixationTool() {
                             <div className="rule-ref">সর্বোচ্চ ধাপ</div>
                           )}
                         </td>
-                        <td className="num">{row.rate}</td>
-                        <td className="num">
+                        <td className="num" data-label="হার">
+                          {row.rate}
+                        </td>
+                        <td className="num" data-label="প্রদেয় মূল বেতন">
                           <strong>{bnNumber(row.pay)}</strong>
                         </td>
-                        <td className="num">{bnNumber(gross)}</td>
-                        <td className="num">{bnNumber(specialBenefit)}</td>
+                        <td className="num" data-label="মোট বৃদ্ধি">
+                          {bnNumber(gross)}
+                        </td>
+                        <td className="num" data-label="বিশেষ সুবিধা বিলুপ্ত (−)">
+                          {bnNumber(specialBenefit)}
+                        </td>
                         <td
                           className="num"
+                          data-label="প্রকৃত নিট বৃদ্ধি"
                           style={net < 0 ? { color: 'var(--danger)' } : undefined}
                         >
                           <strong>{bnNumber(net)}</strong>

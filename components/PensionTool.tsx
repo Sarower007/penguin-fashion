@@ -193,7 +193,7 @@ export default function PensionTool() {
 
           <div className="card">
             <h3>ধাপে ধাপে হিসাব</h3>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
@@ -205,50 +205,62 @@ export default function PensionTool() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>১</td>
+                    <td data-label="ক্রম">১</td>
                     <td>৩০ জুন ২০২৬ তারিখে প্রাপ্ত নিট পেনশন</td>
-                    <td className="num">{bnNumber(result.currentNetPension)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ৮(১)(খ)</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.currentNetPension)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৮(১)(খ)</td>
                   </tr>
                   <tr>
-                    <td>২</td>
+                    <td data-label="ক্রম">২</td>
                     <td>
                       স্ল্যাব অনুযায়ী বৃদ্ধি ({toBn(result.slab.rate)}%)
                     </td>
-                    <td className="num">{bnNumber(result.rawIncrease)}</td>
-                    <td className="rule-ref">সারণি</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.rawIncrease)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">সারণি</td>
                   </tr>
                   <tr>
-                    <td>৩</td>
+                    <td data-label="ক্রম">৩</td>
                     <td>বর্ধিত নিট পেনশন (ক্রম ১ + ক্রম ২)</td>
-                    <td className="num">{bnNumber(result.beforeLimits)}</td>
-                    <td className="rule-ref">সারণি</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.beforeLimits)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">সারণি</td>
                   </tr>
                   <tr>
-                    <td>৪</td>
+                    <td data-label="ক্রম">৪</td>
                     <td>
                       সীমা প্রয়োগের পর নির্ধারিত নিট পেনশন
                       {result.floorApplied && ' — ন্যূনতম সীমা প্রযোজ্য'}
                       {result.ceilingApplied && ' — সর্বোচ্চ সীমা প্রযোজ্য'}
                     </td>
-                    <td className="num">{bnNumber(result.fixedNetPension)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ৮(১)(খ)</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.fixedNetPension)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৮(১)(খ)</td>
                   </tr>
                   {result.incrementApplied && (
                     <tr>
-                      <td>৫</td>
+                      <td data-label="ক্রম">৫</td>
                       <td>
                         ১ জুলাই ২০২৬ তারিখে ১টি বার্ষিক বৃদ্ধি ({toBn(rate)}%)
                       </td>
-                      <td className="num">{bnNumber(result.incrementAmount)}</td>
-                      <td className="rule-ref">অনুচ্ছেদ ৮(২)</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(result.incrementAmount)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৮(২)</td>
                     </tr>
                   )}
                   <tr className="total">
-                    <td />
+                    <td className="hide-sm" />
                     <td>চূড়ান্ত নিট পেনশন</td>
-                    <td className="num">{bnNumber(result.newNetPension)}</td>
-                    <td />
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.newNetPension)}
+                    </td>
+                    <td className="hide-sm" />
                   </tr>
                 </tbody>
               </table>
@@ -257,7 +269,7 @@ export default function PensionTool() {
 
           <div className="card">
             <h3>পর্যায়ভিত্তিক প্রদেয় নিট পেনশন (অনুচ্ছেদ ১(৩)(ঙ)(চ)(ছ))</h3>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
@@ -295,14 +307,21 @@ export default function PensionTool() {
                     return (
                       <tr key={row.key}>
                         <td>{row.period}</td>
-                        <td className="num">{row.rate}</td>
-                        <td className="num">
+                        <td className="num" data-label="হার">
+                          {row.rate}
+                        </td>
+                        <td className="num" data-label="প্রদেয় নিট পেনশন">
                           <strong>{bnNumber(row.pension)}</strong>
                         </td>
-                        <td className="num">{bnNumber(gross)}</td>
-                        <td className="num">{bnNumber(specialBenefit)}</td>
+                        <td className="num" data-label="মোট বৃদ্ধি">
+                          {bnNumber(gross)}
+                        </td>
+                        <td className="num" data-label="বিশেষ সুবিধা বিলুপ্ত (−)">
+                          {bnNumber(specialBenefit)}
+                        </td>
                         <td
                           className="num"
+                          data-label="প্রকৃত নিট বৃদ্ধি"
                           style={net < 0 ? { color: 'var(--danger)' } : undefined}
                         >
                           <strong>{bnNumber(net)}</strong>
@@ -442,7 +461,7 @@ export default function PensionTool() {
 
           <div className="card">
             <h3>পেনশনভোগীর অন্যান্য প্রাপ্যতা</h3>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
@@ -455,30 +474,38 @@ export default function PensionTool() {
                 <tbody>
                   <tr>
                     <td>চিকিৎসা ভাতা (মাসিক)</td>
-                    <td>
+                    <td data-label="বিবরণ">
                       {MEDICAL_PENSIONER.find((m) => m.amount === result.medical)
                         ?.label ?? '—'}
                     </td>
-                    <td className="num">{bnNumber(result.medical)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ১৩(২)</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.medical)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৩(২)</td>
                   </tr>
                   <tr>
                     <td>উৎসব ভাতা (প্রতিটি)</td>
-                    <td>নিট পেনশনের সমপরিমাণ হারে বৎসরে ২টি</td>
-                    <td className="num">{bnNumber(result.festivalEach)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ১৭(২)</td>
+                    <td data-label="বিবরণ">নিট পেনশনের সমপরিমাণ হারে বৎসরে ২টি</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.festivalEach)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৭(২)</td>
                   </tr>
                   <tr>
                     <td>উৎসব ভাতা (বৎসরে ২টি)</td>
-                    <td>—</td>
-                    <td className="num">{bnNumber(result.festivalTotal)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ১৭(২)</td>
+                    <td className="hide-sm">—</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.festivalTotal)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৭(২)</td>
                   </tr>
                   <tr>
                     <td>বাংলা নববর্ষ ভাতা</td>
-                    <td>নিট পেনশনের ১৫%</td>
-                    <td className="num">{bnNumber(result.boishakhi)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ১৪(২)</td>
+                    <td data-label="বিবরণ">নিট পেনশনের ১৫%</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.boishakhi)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৪(২)</td>
                   </tr>
                 </tbody>
               </table>
@@ -498,7 +525,7 @@ export default function PensionTool() {
 
       <div className="card">
         <h3>অনুচ্ছেদ ৮(১)(খ) এর সারণি</h3>
-        <div className="table-wrap">
+        <div className="table-wrap stack">
           <table>
             <thead>
               <tr>
@@ -512,9 +539,15 @@ export default function PensionTool() {
               {PENSION_SLABS.map((s) => (
                 <tr key={s.label}>
                   <td>{s.label}</td>
-                  <td className="num">{toBn(s.rate)}%</td>
-                  <td className="num">{bnNumber(s.floor)} টাকা</td>
-                  <td className="num">{bnNumber(s.ceiling)} টাকা</td>
+                  <td className="num" data-label="নিট পেনশন বৃদ্ধির হার">
+                    {toBn(s.rate)}%
+                  </td>
+                  <td className="num" data-label="ন্যূনতম নিট পেনশন">
+                    {bnNumber(s.floor)} টাকা
+                  </td>
+                  <td className="num" data-label="সর্বোচ্চ নিট পেনশন">
+                    {bnNumber(s.ceiling)} টাকা
+                  </td>
                 </tr>
               ))}
             </tbody>

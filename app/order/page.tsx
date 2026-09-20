@@ -91,7 +91,7 @@ export default function OrderPage() {
 
       <div className="card">
         <h3>সময়পঞ্জি — কখন কী কার্যকর</h3>
-        <div className="table-wrap">
+        <div className="table-wrap stack stack-block">
           <table>
             <thead>
               <tr>
@@ -102,8 +102,8 @@ export default function OrderPage() {
             <tbody>
               {TIMELINE.map((t) => (
                 <tr key={t.date}>
-                  <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{t.date}</td>
-                  <td style={{ textAlign: 'left', fontSize: '.93rem' }}>{t.text}</td>
+                  <td style={{ fontWeight: 600 }}>{t.date}</td>
+                  <td style={{ fontSize: '.93rem' }}>{t.text}</td>
                 </tr>
               ))}
             </tbody>

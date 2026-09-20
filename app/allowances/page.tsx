@@ -121,7 +121,7 @@ export default function AllowancesPage() {
           বিলুপ্ত হইবার পূর্বে বিদ্যমান হার (অর্থ বিভাগ, অর্থ মন্ত্রণালয়ের প্রজ্ঞাপন
           অনুযায়ী {SPECIAL_BENEFIT.effectiveFrom} তারিখ হইতে কার্যকর) —
         </p>
-        <div className="table-wrap">
+        <div className="table-wrap stack">
           <table>
             <thead>
               <tr>
@@ -134,27 +134,33 @@ export default function AllowancesPage() {
             <tbody>
               <tr>
                 <td>চাকরিরত কর্মচারী — গ্রেড-১ (ও তদূর্ধ্ব) হইতে গ্রেড-৯</td>
-                <td className="num">{toBn(SPECIAL_BENEFIT.rateUpperGrades)}%</td>
-                <td className="num">
+                <td className="num" data-label="হার">
+                  {toBn(SPECIAL_BENEFIT.rateUpperGrades)}%
+                </td>
+                <td className="num" data-label="ন্যূনতম মাসিক">
                   {bnNumber(SPECIAL_BENEFIT.employeeMinimum)} টাকা
                 </td>
-                <td>প্রতি বৎসর ১ জুলাই তারিখে প্রাপ্য মূল বেতন</td>
+                <td data-label="ভিত্তি">প্রতি বৎসর ১ জুলাই তারিখে প্রাপ্য মূল বেতন</td>
               </tr>
               <tr>
                 <td>চাকরিরত কর্মচারী — গ্রেড-১০ হইতে গ্রেড-২০</td>
-                <td className="num">{toBn(SPECIAL_BENEFIT.rateLowerGrades)}%</td>
-                <td className="num">
+                <td className="num" data-label="হার">
+                  {toBn(SPECIAL_BENEFIT.rateLowerGrades)}%
+                </td>
+                <td className="num" data-label="ন্যূনতম মাসিক">
                   {bnNumber(SPECIAL_BENEFIT.employeeMinimum)} টাকা
                 </td>
-                <td>প্রতি বৎসর ১ জুলাই তারিখে প্রাপ্য মূল বেতন</td>
+                <td data-label="ভিত্তি">প্রতি বৎসর ১ জুলাই তারিখে প্রাপ্য মূল বেতন</td>
               </tr>
               <tr>
                 <td>অবসরভোগী ও আজীবন পারিবারিক পেনশনভোগী</td>
-                <td className="num">{toBn(SPECIAL_BENEFIT.pensionerRate)}%</td>
-                <td className="num">
+                <td className="num" data-label="হার">
+                  {toBn(SPECIAL_BENEFIT.pensionerRate)}%
+                </td>
+                <td className="num" data-label="ন্যূনতম মাসিক">
                   {bnNumber(SPECIAL_BENEFIT.pensionerMinimum)} টাকা
                 </td>
-                <td>বিদ্যমান নিট পেনশন</td>
+                <td data-label="ভিত্তি">বিদ্যমান নিট পেনশন</td>
               </tr>
             </tbody>
           </table>
@@ -181,27 +187,35 @@ export default function AllowancesPage() {
 
       <div className="card">
         <h3>বাড়ি ভাড়া ভাতা (অনুচ্ছেদ ১৫) — ১ জানুয়ারি ২০২৮ হইতে প্রযোজ্য হার</h3>
-        <div className="table-wrap">
+        <div className="table-wrap table-fixed stack stack-block">
           <table>
             <thead>
               <tr>
-                <th>জাতীয় বেতনস্কেল, ২০২৬ এর গ্রেড</th>
-                <th>ঢাকা উত্তর ও দক্ষিণ সিটি কর্পোরেশন এলাকার জন্য</th>
-                <th>
+                <th style={{ width: '28%' }}>জাতীয় বেতনস্কেল, ২০২৬ এর গ্রেড</th>
+                <th style={{ width: '20%' }}>
+                  ঢাকা উত্তর ও দক্ষিণ সিটি কর্পোরেশন এলাকার জন্য
+                </th>
+                <th style={{ width: '34%' }}>
                   খুলনা, রাজশাহী, চট্টগ্রাম, সিলেট, বরিশাল, নারায়ণগঞ্জ, কুমিল্লা,
                   রংপুর, গাজীপুর, ময়মনসিংহ ও বগুড়া সিটি কর্পোরেশন এবং সাভার ও
                   কক্সবাজার পৌর এলাকার জন্য
                 </th>
-                <th>অন্যান্য স্থানের জন্য</th>
+                <th style={{ width: '18%' }}>অন্যান্য স্থানের জন্য</th>
               </tr>
             </thead>
             <tbody>
               {HOUSE_RENT_BANDS.map((b) => (
                 <tr key={b.label}>
                   <td style={{ fontSize: '.92rem' }}>{b.label}</td>
-                  <td>মূল বেতনের {toBn(b.dhaka)}% হারে</td>
-                  <td>মূল বেতনের {toBn(b.cityCorp)}% হারে</td>
-                  <td>মূল বেতনের {toBn(b.other)}% হারে</td>
+                  <td data-label="ঢাকা উত্তর ও দক্ষিণ সিটি কর্পোরেশন">
+                    মূল বেতনের {toBn(b.dhaka)}% হারে
+                  </td>
+                  <td data-label="অন্যান্য সিটি কর্পোরেশন ও সাভার/কক্সবাজার">
+                    মূল বেতনের {toBn(b.cityCorp)}% হারে
+                  </td>
+                  <td data-label="অন্যান্য স্থান">
+                    মূল বেতনের {toBn(b.other)}% হারে
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -260,7 +274,7 @@ export default function AllowancesPage() {
 
       <div className="card">
         <h3>অন্যান্য ভাতাসমূহ</h3>
-        <div className="table-wrap">
+        <div className="table-wrap stack stack-block">
           <table>
             <thead>
               <tr>
@@ -272,9 +286,9 @@ export default function AllowancesPage() {
             <tbody>
               {ALLOWANCES.map((a) => (
                 <tr key={a.name}>
-                  <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{a.name}</td>
-                  <td style={{ textAlign: 'left', fontSize: '.92rem' }}>{a.rate}</td>
-                  <td className="rule-ref">{a.rule}</td>
+                  <td style={{ fontWeight: 600 }}>{a.name}</td>
+                  <td style={{ fontSize: '.92rem' }}>{a.rate}</td>
+                  <td className="rule-ref" data-label="বিধি">{a.rule}</td>
                 </tr>
               ))}
             </tbody>

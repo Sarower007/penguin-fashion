@@ -69,7 +69,7 @@ export default function IncrementPage() {
           জন্য নিম্নোক্ত ন্যূনতম চাকরির মেয়াদ পূর্ণ করিতে হইবে (কেবল ৯ম বা তদূর্ধ্ব
           গ্রেডে নিয়োজিত প্রকৃত চাকরির মেয়াদ গণনাযোগ্য)।
         </p>
-        <div className="table-wrap">
+        <div className="table-wrap stack">
           <table>
             <thead>
               <tr>
@@ -84,13 +84,15 @@ export default function IncrementPage() {
                 const scale = SCALE_2026[grade];
                 return (
                   <tr key={g}>
-                    <td>{bnOrdinal(Number(g))}</td>
-                    <td className="num">
+                    <td>{bnOrdinal(Number(g))} গ্রেড</td>
+                    <td className="num" data-label="বেতনস্কেল">
                       {scale.length === 1
                         ? `${bnNumber(scale[0])} (নির্ধারিত)`
                         : `${bnNumber(scale[0])}–${bnNumber(scale[scale.length - 1])}`}
                     </td>
-                    <td className="num">{toBn(years as number)} বৎসর</td>
+                    <td className="num" data-label="ন্যূনতম চাকরির মেয়াদ">
+                      {toBn(years as number)} বৎসর
+                    </td>
                   </tr>
                 );
               })}
