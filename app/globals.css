@@ -52,6 +52,13 @@
 html, body {
   padding: 0;
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -68,6 +75,7 @@ a { color: var(--brand-2); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 .container {
+  width: 100%;
   max-width: var(--maxw);
   margin: 0 auto;
   padding: 0 16px;
@@ -118,18 +126,23 @@ a:hover { text-decoration: underline; }
   display: flex;
   gap: 4px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 10px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
+
+.site-nav::-webkit-scrollbar { display: none; }
 
 .site-nav a {
   color: rgba(255, 255, 255, .88);
   white-space: nowrap;
-  padding: 7px 13px;
+  padding: 8px 13px;
   border-radius: 999px;
   font-size: .93rem;
   border: 1px solid transparent;
   transition: background .15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .site-nav a:hover { background: rgba(255, 255, 255, .14); text-decoration: none; }
@@ -214,9 +227,10 @@ input[type='text'],
 input[type='number'],
 select {
   width: 100%;
-  padding: 9px 11px;
+  max-width: 100%;
+  padding: 10px 11px;
   font: inherit;
-  font-size: .98rem;
+  font-size: 16px;
   color: var(--ink);
   background: var(--bg-elev);
   border: 1px solid var(--line-strong);
@@ -307,11 +321,16 @@ table {
 
 .table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
 }
 
-.table-wrap table { min-width: 460px; }
+.table-wrap table { min-width: 100%; }
+
+/* প্রশস্ত রেফারেন্স সারণি — অনুভূমিক স্ক্রল প্রয়োজন */
+.table-wrap.wide table { min-width: 560px; }
 
 .table-fixed table {
   table-layout: fixed;
@@ -507,11 +526,162 @@ td.num, th.num {
   font-weight: 700;
 }
 
-@media (max-width: 560px) {
-  body { font-size: 16px; }
-  .header-title h1 { font-size: 1.08rem; }
-  .stat .stat-value { font-size: 1.22rem; }
-  .card { padding: 14px; }
+/* ---------- Responsive ---------- */
+
+/* ট্যাবলেট */
+@media (max-width: 860px) {
+  .header-title h1 { font-size: 1.16rem; }
+  .grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .headline { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+
+/* বড় ফোন ও ছোট ট্যাবলেট */
+@media (max-width: 640px) {
+  .container { padding: 0 14px; }
+  main { padding: 18px 0 40px; }
+  .card { padding: 14px; margin-bottom: 14px; }
+  .card > h3 { font-size: 1.02rem; }
+  .page-head h2 { font-size: 1.24rem; }
+  .header-top { gap: 11px; padding: 14px 0 10px; }
+  .header-mark { width: 40px; height: 40px; flex-basis: 40px; font-size: 19px; }
+  .header-title h1 { font-size: 1.04rem; }
+  .header-title p { font-size: .78rem; }
+  .grid, .grid-2 { grid-template-columns: 1fr; gap: 12px; }
+  .headline { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; }
+  .stat .stat-value { font-size: 1.18rem; }
+  .stat .stat-label { font-size: .8rem; }
+  .tool-grid { grid-template-columns: 1fr; }
+  .btn { width: 100%; justify-content: center; padding: 12px 18px; }
+  .btn-row { flex-direction: column; }
+  .dev-card { flex-direction: column; align-items: flex-start; }
+  .dev-card > div:last-child { text-align: left !important; }
+}
+
+/* ছোট ফোন */
+@media (max-width: 380px) {
+  body { font-size: 15.5px; }
+  .container { padding: 0 12px; }
+  .headline { grid-template-columns: 1fr; }
+  .header-title h1 { font-size: .97rem; }
+}
+
+/*
+ * ছোট পর্দায় ফলাফল সারণিগুলো কার্ড আকারে ভাঁজ হইয়া যায় — প্রতিটি সারি একটি
+ * কার্ড, প্রতিটি ঘরের বাঁয়ে তাহার কলামের শিরোনাম (data-label)।
+ */
+@media (max-width: 640px) {
+  .table-wrap.stack {
+    border: none;
+    overflow-x: visible;
+  }
+
+  .table-wrap.stack table,
+  .table-wrap.stack tbody,
+  .table-wrap.stack tr,
+  .table-wrap.stack td {
+    display: block;
+    width: 100%;
+  }
+
+  /* ভাঁজ অবস্থায় নির্ধারিত প্রস্থ ও লেআউট বাতিল */
+  .table-wrap.stack table,
+  .table-wrap.table-fixed.stack table,
+  .table-wrap.wide.stack table {
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .table-wrap.stack thead { display: none; }
+
+  .table-wrap.stack tr {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+    margin-bottom: 10px;
+    padding: 4px 0;
+    overflow: hidden;
+  }
+
+  .table-wrap.stack tr:last-child { margin-bottom: 0; }
+  .table-wrap.stack tbody tr:hover td { background: transparent; }
+
+  .table-wrap.stack td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    border-bottom: 1px dashed var(--line);
+    padding: 7px 12px;
+    text-align: right;
+  }
+
+  .table-wrap.stack tr td:last-child { border-bottom: none; }
+
+  .table-wrap.stack td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    max-width: 55%;
+    text-align: left;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  /* data-label না থাকিলে ঘরটি কার্ডের শিরোনাম হিসাবে পূর্ণ প্রস্থে বসে */
+  .table-wrap.stack td:not([data-label]) {
+    justify-content: flex-start;
+    text-align: left;
+    font-weight: 600;
+    background: var(--bg-soft);
+  }
+
+  .table-wrap.stack td:not([data-label])::before { content: none; }
+
+  .table-wrap.stack td:empty { display: none; }
+
+  /* দীর্ঘ লেখার ঘর — শিরোনাম উপরে, মান নিচে */
+  .table-wrap.stack.stack-block td[data-label] {
+    display: block;
+    text-align: left;
+  }
+
+  .table-wrap.stack.stack-block td[data-label]::before {
+    display: block;
+    max-width: 100%;
+    margin-bottom: 2px;
+  }
+
+  .table-wrap.stack tr.total {
+    border-color: var(--brand);
+    border-width: 2px;
+  }
+
+  .table-wrap.stack tr.total td,
+  .table-wrap.stack tr.total td:not([data-label]) {
+    background: var(--brand-soft);
+  }
+
+  .table-wrap.stack td .rule-ref { white-space: normal; }
+
+  .hide-sm { display: none !important; }
+}
+
+/* অনুভূমিক স্ক্রলযুক্ত সারণিতে ইঙ্গিত */
+@media (max-width: 640px) {
+  .table-wrap:not(.stack) { position: relative; }
+  .scroll-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: .78rem;
+    color: var(--ink-mute);
+  }
+}
+
+.scroll-hint { display: none; }
+
+@media print {
+  .table-wrap.stack { overflow: visible; }
 }
 
 @media print {

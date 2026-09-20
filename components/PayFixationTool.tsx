@@ -9,6 +9,11 @@ import {
   FIXED_PAY_POSTS,
 } from '@/lib/scales';
 import { calculateFixation, SpecialPostId } from '@/lib/fixation';
+import {
+  SPECIAL_BENEFIT,
+  specialBenefitForEmployee,
+  specialBenefitImpact,
+} from '@/lib/specialBenefit';
 import { bnNumber, bnOrdinal, bnTaka, parseAmount, toBn } from '@/lib/bn';
 
 export default function PayFixationTool() {
@@ -19,6 +24,8 @@ export default function PayFixationTool() {
   const [specialPost, setSpecialPost] = useState<SpecialPostId | ''>('');
   const [withIncrement, setWithIncrement] = useState(true);
   const [arrearMonths, setArrearMonths] = useState('৩');
+  const [sbMode, setSbMode] = useState<'auto' | 'manual'>('auto');
+  const [sbManual, setSbManual] = useState('');
 
   const scale2015 = SCALE_2015[grade];
   const scale2026 = SCALE_2026[grade];
@@ -36,8 +43,21 @@ export default function PayFixationTool() {
     });
   }, [grade, currentBasic, specialPost, withIncrement]);
 
+  const autoSB =
+    currentBasic > 0 ? specialBenefitForEmployee(grade, currentBasic) : null;
+  const specialBenefit =
+    sbMode === 'auto'
+      ? (autoSB?.amount ?? 0)
+      : Math.max(0, parseAmount(sbManual) ?? 0);
+
   const months = Math.max(0, Math.floor(parseAmount(arrearMonths) ?? 0));
-  const arrear = result ? (result.phase1Pay - result.currentBasic) * months : 0;
+  const impact = result
+    ? specialBenefitImpact(
+        result.phase1Pay - result.currentBasic,
+        specialBenefit,
+        months,
+      )
+    : null;
 
   function handleGradeChange(g: GradeNo) {
     setGrade(g);
@@ -156,6 +176,44 @@ export default function PayFixationTool() {
               বকেয়া হিসাবে প্রাপ্য।
             </span>
           </div>
+
+          <div className="field">
+            <label htmlFor="sbmode">বিশেষ সুবিধা (৩০ জুন ২০২৬ তারিখে আহরিত)</label>
+            <select
+              id="sbmode"
+              value={sbMode}
+              onChange={(e) => setSbMode(e.target.value as 'auto' | 'manual')}
+            >
+              <option value="auto">প্রজ্ঞাপন অনুযায়ী স্বয়ংক্রিয় হিসাব</option>
+              <option value="manual">নিজে অঙ্ক লিখিব</option>
+            </select>
+            <span className="hint">
+              {autoSB
+                ? `${bnOrdinal(grade)} গ্রেডে মূল বেতনের ${toBn(autoSB.rate)}% = ${bnNumber(autoSB.calculated)} টাকা${
+                    autoSB.minimumApplied
+                      ? `; ন্যূনতম ১৫০০ টাকা প্রযোজ্য হওয়ায় ${bnNumber(autoSB.amount)} টাকা`
+                      : ''
+                  }`
+                : 'মূল বেতন নির্বাচন করুন।'}
+            </span>
+          </div>
+
+          {sbMode === 'manual' && (
+            <div className="field">
+              <label htmlFor="sbamount">আহরিত মাসিক বিশেষ সুবিধা (টাকা)</label>
+              <input
+                id="sbamount"
+                type="text"
+                inputMode="numeric"
+                placeholder={autoSB ? toBn(autoSB.amount) : 'যেমন: ২৪০০'}
+                value={sbManual}
+                onChange={(e) => setSbManual(e.target.value)}
+              />
+              <span className="hint">
+                বেতন বিলে আপনি প্রকৃতপক্ষে যে অঙ্ক পাইতেছিলেন তাহা লিখুন।
+              </span>
+            </div>
+          )}
         </div>
 
         <div style={{ marginTop: 14 }}>
@@ -218,6 +276,26 @@ export default function PayFixationTool() {
                 বৃদ্ধির হার {bnNumber(result.increasePercent, 2)}%
               </div>
             </div>
+            <div className="stat">
+              <div className="stat-label">
+                ১ম পর্যায়ে প্রকৃত নিট বৃদ্ধি (বিশেষ সুবিধা বাদে)
+              </div>
+              <div
+                className={
+                  'stat-value ' + ((impact?.netIncrease ?? 0) >= 0 ? 'brand' : '')
+                }
+                style={
+                  (impact?.netIncrease ?? 0) < 0
+                    ? { color: 'var(--danger)' }
+                    : undefined
+                }
+              >
+                {bnTaka(impact?.netIncrease ?? 0)}
+              </div>
+              <div className="stat-sub">
+                বিশেষ সুবিধা {bnTaka(specialBenefit)} বিলুপ্ত হওয়ায়
+              </div>
+            </div>
           </div>
 
           <div className="btn-row" style={{ marginBottom: 16 }}>
@@ -232,7 +310,7 @@ export default function PayFixationTool() {
 
           <div className="card">
             <h3>ধাপে ধাপে হিসাব</h3>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
@@ -244,47 +322,59 @@ export default function PayFixationTool() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>১</td>
+                    <td data-label="ক্রম">১</td>
                     <td>৩০ জুন ২০২৬ তারিখে আহরিত/প্রাপ্য মূল বেতন</td>
-                    <td className="num">{bnNumber(result.currentBasic)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ২(খ)</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.currentBasic)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ২(খ)</td>
                   </tr>
                   {!result.isSpecialFixed && (
                     <>
                       <tr>
-                        <td>২</td>
+                        <td data-label="ক্রম">২</td>
                         <td>বর্তমান বেতনস্কেলের প্রারম্ভিক ধাপ</td>
-                        <td className="num">{bnNumber(result.scale2015[0])}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৩(১)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.scale2015[0])}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৩(১)</td>
                       </tr>
                       <tr>
-                        <td>৩</td>
+                        <td data-label="ক্রম">৩</td>
                         <td>পার্থক্য (ক্রম ১ − ক্রম ২)</td>
-                        <td className="num">{bnNumber(result.difference)}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৫(খ)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.difference)}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৫(খ)</td>
                       </tr>
                       <tr>
-                        <td>৪</td>
+                        <td data-label="ক্রম">৪</td>
                         <td>জাতীয় বেতনস্কেল, ২০২৬ এর অনুরূপ স্কেলের প্রারম্ভিক ধাপ</td>
-                        <td className="num">{bnNumber(result.scale2026[0])}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৩(১)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.scale2026[0])}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৩(১)</td>
                       </tr>
                       <tr>
-                        <td>৫</td>
+                        <td data-label="ক্রম">৫</td>
                         <td>যোগফল (ক্রম ৪ + ক্রম ৩)</td>
-                        <td className="num">{bnNumber(result.provisional)}</td>
-                        <td className="rule-ref">অনুচ্ছেদ ৫(খ)</td>
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.provisional)}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৫(খ)</td>
                       </tr>
                       <tr>
-                        <td>৬</td>
+                        <td data-label="ক্রম">৬</td>
                         <td>
                           নির্ধারিত বেতন —{' '}
                           {result.fixedExactMatch
                             ? 'যোগফলের সমান ধাপ পাওয়া গিয়াছে'
                             : 'সমান ধাপ না থাকায় পরবর্তী উচ্চতর ধাপ'}
                         </td>
-                        <td className="num">{bnNumber(result.fixedPay)}</td>
-                        <td className="rule-ref">
+                        <td className="num" data-label="টাকা">
+                          {bnNumber(result.fixedPay)}
+                        </td>
+                        <td className="rule-ref" data-label="বিধি">
                           অনুচ্ছেদ ৫(খ)({result.fixedExactMatch ? 'অ' : 'আ'})
                         </td>
                       </tr>
@@ -292,17 +382,21 @@ export default function PayFixationTool() {
                   )}
                   {result.incrementApplied && (
                     <tr>
-                      <td>{result.isSpecialFixed ? '২' : '৭'}</td>
+                      <td data-label="ক্রম">{result.isSpecialFixed ? '২' : '৭'}</td>
                       <td>১ জুলাই ২০২৬ তারিখে ১টি বার্ষিক বেতনবৃদ্ধি (পরবর্তী ধাপ)</td>
-                      <td className="num">{bnNumber(result.newBasic)}</td>
-                      <td className="rule-ref">অনুচ্ছেদ ৯(২)</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(result.newBasic)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৯(২)</td>
                     </tr>
                   )}
                   <tr className="total">
-                    <td />
+                    <td className="hide-sm" />
                     <td>জাতীয় বেতনস্কেল, ২০২৬ এ নির্ধারিত মূল বেতন</td>
-                    <td className="num">{bnNumber(result.newBasic)}</td>
-                    <td />
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(result.newBasic)}
+                    </td>
+                    <td className="hide-sm" />
                   </tr>
                 </tbody>
               </table>
@@ -316,52 +410,74 @@ export default function PayFixationTool() {
               হইবে। আপনার গ্রেড {bnOrdinal(result.grade)} হওয়ায় হার{' '}
               {toBn(result.phase1Percent)}% ও {toBn(result.phase2Percent)}%।
             </p>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
                     <th>সময়কাল</th>
                     <th className="num">হার</th>
-                    <th className="num">বৃদ্ধির অঙ্ক</th>
                     <th className="num">প্রদেয় মূল বেতন</th>
+                    <th className="num">মোট বৃদ্ধি</th>
+                    <th className="num">বিশেষ সুবিধা বিলুপ্ত (−)</th>
+                    <th className="num">প্রকৃত নিট বৃদ্ধি</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>১ জুলাই ২০২৬ – ৩১ ডিসেম্বর ২০২৬</td>
-                    <td className="num">{toBn(result.phase1Percent)}%</td>
-                    <td className="num">
-                      {bnNumber(result.phase1Pay - result.currentBasic)}
-                    </td>
-                    <td className="num">
-                      <strong>{bnNumber(result.phase1Pay)}</strong>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>১ জানুয়ারি ২০২৭ – ৩০ জুন ২০২৭</td>
-                    <td className="num">{toBn(result.phase2Percent)}%</td>
-                    <td className="num">
-                      {bnNumber(result.phase2Pay - result.currentBasic)}
-                    </td>
-                    <td className="num">
-                      <strong>{bnNumber(result.phase2Pay)}</strong>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      ১ জুলাই ২০২৭ হইতে (বার্ষিক ইনক্রিমেন্টসহ শতভাগ)
-                    </td>
-                    <td className="num">১০০%</td>
-                    <td className="num">
-                      {bnNumber(result.phase3Pay - result.currentBasic)}
-                    </td>
-                    <td className="num">
-                      <strong>{bnNumber(result.phase3Pay)}</strong>
-                      {result.phase3AtMax && (
-                        <div className="rule-ref">সর্বোচ্চ ধাপ</div>
-                      )}
-                    </td>
-                  </tr>
+                  {[
+                    {
+                      key: 'p1',
+                      period: '১ জুলাই ২০২৬ – ৩১ ডিসেম্বর ২০২৬',
+                      rate: `${toBn(result.phase1Percent)}%`,
+                      pay: result.phase1Pay,
+                      atMax: false,
+                    },
+                    {
+                      key: 'p2',
+                      period: '১ জানুয়ারি ২০২৭ – ৩০ জুন ২০২৭',
+                      rate: `${toBn(result.phase2Percent)}%`,
+                      pay: result.phase2Pay,
+                      atMax: false,
+                    },
+                    {
+                      key: 'p3',
+                      period: '১ জুলাই ২০২৭ হইতে (বার্ষিক ইনক্রিমেন্টসহ শতভাগ)',
+                      rate: '১০০%',
+                      pay: result.phase3Pay,
+                      atMax: result.phase3AtMax,
+                    },
+                  ].map((row) => {
+                    const gross = row.pay - result.currentBasic;
+                    const net = gross - specialBenefit;
+                    return (
+                      <tr key={row.key}>
+                        <td>
+                          {row.period}
+                          {row.atMax && (
+                            <div className="rule-ref">সর্বোচ্চ ধাপ</div>
+                          )}
+                        </td>
+                        <td className="num" data-label="হার">
+                          {row.rate}
+                        </td>
+                        <td className="num" data-label="প্রদেয় মূল বেতন">
+                          <strong>{bnNumber(row.pay)}</strong>
+                        </td>
+                        <td className="num" data-label="মোট বৃদ্ধি">
+                          {bnNumber(gross)}
+                        </td>
+                        <td className="num" data-label="বিশেষ সুবিধা বিলুপ্ত (−)">
+                          {bnNumber(specialBenefit)}
+                        </td>
+                        <td
+                          className="num"
+                          data-label="প্রকৃত নিট বৃদ্ধি"
+                          style={net < 0 ? { color: 'var(--danger)' } : undefined}
+                        >
+                          <strong>{bnNumber(net)}</strong>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -373,14 +489,68 @@ export default function PayFixationTool() {
             </div>
           </div>
 
-          {months > 0 && (
+          <div className="card">
+            <h3>বিশেষ সুবিধা বিলুপ্তি ও সমন্বয় (অনুচ্ছেদ ১(৩)(ট) ও (ঠ))</h3>
+            <div className="alert alert-warn">
+              জাতীয় বেতনস্কেল, ২০২৬ কার্যকর হইবার তারিখ অর্থাৎ{' '}
+              <strong>১ জুলাই ২০২৬</strong> হইতে <strong>বিশেষ সুবিধা বিলুপ্ত</strong>{' '}
+              হইয়াছে বলিয়া গণ্য হইবে। ১ জুলাই ২০২৬ তারিখ হইতে আদেশ জারির তারিখ পর্যন্ত
+              আহরিত বিশেষ সুবিধা প্রাপ্য বকেয়ার সহিত সমন্বয় করিতে হইবে। তাই নতুন
+              বেতনে প্রকৃত লাভ নিরূপণে বিশেষ সুবিধার অঙ্ক বাদ দেওয়া হইয়াছে।
+            </div>
+            <div className="table-wrap">
+              <table>
+                <tbody>
+                  <tr>
+                    <td>বিদ্যমান হার (১ জুলাই ২০২৫ হইতে কার্যকর প্রজ্ঞাপন)</td>
+                    <td className="num">
+                      {grade <= 9
+                        ? `গ্রেড ১–৯: মূল বেতনের ${toBn(SPECIAL_BENEFIT.rateUpperGrades)}%`
+                        : `গ্রেড ১০–২০: মূল বেতনের ${toBn(SPECIAL_BENEFIT.rateLowerGrades)}%`}
+                    </td>
+                  </tr>
+                  {autoSB && (
+                    <tr>
+                      <td>
+                        হার প্রয়োগে প্রাপ্ত অঙ্ক ({bnNumber(result.currentBasic)} ×{' '}
+                        {toBn(autoSB.rate)}%)
+                      </td>
+                      <td className="num">{bnNumber(autoSB.calculated)} টাকা</td>
+                    </tr>
+                  )}
+                  {autoSB?.minimumApplied && (
+                    <tr>
+                      <td>ন্যূনতম সীমা প্রযোজ্য</td>
+                      <td className="num">
+                        {bnNumber(SPECIAL_BENEFIT.employeeMinimum)} টাকা
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="total">
+                    <td>
+                      ৩০ জুন ২০২৬ তারিখে আহরিত মাসিক বিশেষ সুবিধা
+                      {sbMode === 'manual' && ' (নিজে প্রদত্ত)'}
+                    </td>
+                    <td className="num">{bnTaka(specialBenefit)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="hint" style={{ marginTop: 10 }}>
+              ব্যতিক্রম (অনুচ্ছেদ ১(৩)(ঠ)): যে কর্মচারী ১ জুলাই ২০২৬ তারিখে অবসর-উত্তর
+              ছুটিতে (পিআরএল) রহিয়াছেন, তিনি ৩০ জুন ২০২৬ তারিখে যে হারে বিশেষ সুবিধা
+              পাইতেন অবসর-উত্তর ছুটি শেষ না হওয়া পর্যন্ত সেই হারেই প্রাপ্য হইবেন।
+            </p>
+          </div>
+
+          {months > 0 && impact && (
             <div className="card">
-              <h3>বকেয়া হিসাব (অনুচ্ছেদ ১(৩)(ঘ))</h3>
+              <h3>বকেয়া হিসাব ও বিশেষ সুবিধার সমন্বয় (অনুচ্ছেদ ১(৩)(ঘ) ও (ট))</h3>
               <div className="table-wrap">
                 <table>
                   <tbody>
                     <tr>
-                      <td>মাসিক বেতনবৃদ্ধি (১ম পর্যায়ে)</td>
+                      <td>মাসিক বেতনবৃদ্ধি (১ম পর্যায়ে {toBn(result.phase1Percent)}%)</td>
                       <td className="num">
                         {bnNumber(result.phase1Pay - result.currentBasic)} টাকা
                       </td>
@@ -389,13 +559,42 @@ export default function PayFixationTool() {
                       <td>মাস সংখ্যা</td>
                       <td className="num">{toBn(months)} মাস</td>
                     </tr>
+                    <tr>
+                      <td>মোট বকেয়া (সমন্বয়ের পূর্বে)</td>
+                      <td className="num">{bnNumber(impact.grossArrear)} টাকা</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        বাদ: আহরিত বিশেষ সুবিধা ({bnNumber(specialBenefit)} ×{' '}
+                        {toBn(months)} মাস)
+                      </td>
+                      <td className="num" style={{ color: 'var(--danger)' }}>
+                        − {bnNumber(impact.adjustment)} টাকা
+                      </td>
+                    </tr>
                     <tr className="total">
-                      <td>মোট বকেয়া</td>
-                      <td className="num">{bnTaka(arrear)}</td>
+                      <td>সমন্বয়ের পর প্রকৃত প্রাপ্য বকেয়া</td>
+                      <td
+                        className="num"
+                        style={
+                          impact.netArrear < 0
+                            ? { color: 'var(--danger)' }
+                            : undefined
+                        }
+                      >
+                        {bnTaka(impact.netArrear)}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+              {impact.netArrear < 0 && (
+                <div className="alert alert-danger" style={{ marginTop: 12 }}>
+                  আহরিত বিশেষ সুবিধার অঙ্ক প্রাপ্য বকেয়া অপেক্ষা বেশি হওয়ায় সমন্বয়ের
+                  পর ফলাফল ঋণাত্মক; এইরূপ ক্ষেত্রে অতিরিক্ত পরিশোধিত অঙ্ক পরবর্তী বেতন
+                  হইতে সমন্বয়যোগ্য হইবে (অনুচ্ছেদ ৩২(১০))।
+                </div>
+              )}
               <p className="hint" style={{ marginTop: 10 }}>
                 গেজেট জারি হইয়াছে ১৭ সেপ্টেম্বর ২০২৬ তারিখে; সাধারণভাবে জুলাই, আগস্ট ও
                 সেপ্টেম্বর — এই ৩ মাসের পার্থক্য বকেয়া হিসাবে প্রাপ্য হইবে। প্রকৃত মাস

@@ -32,6 +32,7 @@ export default function SalaryTool() {
   const [haor, setHaor] = useState(false);
   const [trainingDeputation, setTrainingDeputation] = useState(false);
   const [oldAllowance, setOldAllowance] = useState('');
+  const [oldSpecialBenefit, setOldSpecialBenefit] = useState('');
 
   const basic =
     basicMode === 'step' ? stepValue : (parseAmount(customBasic) ?? 0);
@@ -65,6 +66,7 @@ export default function SalaryTool() {
 
   const yearly = basic ? yearlyBenefits(basic) : null;
   const oldAllowanceAmount = parseAmount(oldAllowance) ?? 0;
+  const oldSBAmount = Math.max(0, parseAmount(oldSpecialBenefit) ?? 0);
 
   function handleGradeChange(g: GradeNo) {
     setGrade(g);
@@ -308,7 +310,7 @@ export default function SalaryTool() {
 
           <div className="card">
             <h3>মাসিক বেতন বিবরণী</h3>
-            <div className="table-wrap">
+            <div className="table-wrap stack">
               <table>
                 <thead>
                   <tr>
@@ -321,24 +323,33 @@ export default function SalaryTool() {
                 <tbody>
                   <tr>
                     <td>মূল বেতন</td>
-                    <td>জাতীয় বেতনস্কেল, ২০২৬ এ নির্ধারিত</td>
-                    <td className="num">{bnNumber(basic)}</td>
-                    <td className="rule-ref">অনুচ্ছেদ ৩ ও ৫</td>
+                    <td data-label="বিবরণ">জাতীয় বেতনস্কেল, ২০২৬ এ নির্ধারিত</td>
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(basic)}
+                    </td>
+                    <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ৩ ও ৫</td>
                   </tr>
                   {result.lines.map((l) => (
                     <tr key={l.key}>
                       <td>{l.label}</td>
-                      <td style={{ fontSize: '.88rem', color: 'var(--ink-soft)' }}>
+                      <td
+                        data-label="বিবরণ"
+                        style={{ fontSize: '.88rem', color: 'var(--ink-soft)' }}
+                      >
                         {l.note}
                       </td>
-                      <td className="num">{bnNumber(l.amount)}</td>
-                      <td className="rule-ref">{l.rule}</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(l.amount)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">{l.rule}</td>
                     </tr>
                   ))}
                   <tr className="total">
                     <td colSpan={2}>সর্বমোট মাসিক প্রাপ্য (গ্রস)</td>
-                    <td className="num">{bnNumber(basic + result.total)}</td>
-                    <td />
+                    <td className="num" data-label="টাকা">
+                      {bnNumber(basic + result.total)}
+                    </td>
+                    <td className="hide-sm" />
                   </tr>
                 </tbody>
               </table>
@@ -353,7 +364,7 @@ export default function SalaryTool() {
           {yearly && (
             <div className="card">
               <h3>বাৎসরিক প্রাপ্তি</h3>
-              <div className="table-wrap">
+              <div className="table-wrap stack">
                 <table>
                   <thead>
                     <tr>
@@ -366,30 +377,38 @@ export default function SalaryTool() {
                   <tbody>
                     <tr>
                       <td>উৎসব ভাতা (প্রতিটি)</td>
-                      <td>মূল বেতনের সমপরিমাণ হারে বৎসরে ২টি</td>
-                      <td className="num">{bnNumber(yearly.festivalEach)}</td>
-                      <td className="rule-ref">অনুচ্ছেদ ১৭(১)</td>
+                      <td data-label="বিবরণ">মূল বেতনের সমপরিমাণ হারে বৎসরে ২টি</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(yearly.festivalEach)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৭(১)</td>
                     </tr>
                     <tr>
                       <td>উৎসব ভাতা (বৎসরে ২টি)</td>
-                      <td>—</td>
-                      <td className="num">{bnNumber(yearly.festivalTotal)}</td>
-                      <td className="rule-ref">অনুচ্ছেদ ১৭(১)</td>
+                      <td className="hide-sm">—</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(yearly.festivalTotal)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৭(১)</td>
                     </tr>
                     <tr>
                       <td>বাংলা নববর্ষ ভাতা</td>
-                      <td>আহরিত মূল বেতনের ১৫%</td>
-                      <td className="num">{bnNumber(yearly.boishakhi)}</td>
-                      <td className="rule-ref">অনুচ্ছেদ ১৪(১)</td>
+                      <td data-label="বিবরণ">আহরিত মূল বেতনের ১৫%</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(yearly.boishakhi)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৪(১)</td>
                     </tr>
                     <tr>
                       <td>শ্রান্তি ও বিনোদন ভাতা</td>
-                      <td>
+                      <td data-label="বিবরণ">
                         Bangladesh Services (Recreation Allowance) Rules, 1979
                         অনুসারে (১ মাসের মূল বেতনের সমপরিমাণ, ৩ বৎসর অন্তর)
                       </td>
-                      <td className="num">{bnNumber(yearly.recreation)}</td>
-                      <td className="rule-ref">অনুচ্ছেদ ১৭(১)</td>
+                      <td className="num" data-label="টাকা">
+                        {bnNumber(yearly.recreation)}
+                      </td>
+                      <td className="rule-ref" data-label="বিধি">অনুচ্ছেদ ১৭(১)</td>
                     </tr>
                   </tbody>
                 </table>
@@ -404,10 +423,17 @@ export default function SalaryTool() {
               যাতায়াত ইত্যাদির যোগফল) পাইতেছিলেন তাহা লিখুন — ঐ অঙ্কই ৩১ ডিসেম্বর ২০২৭
               পর্যন্ত প্রদেয় হইবে।
             </p>
+            <div className="alert alert-warn">
+              <strong>বিশেষ সুবিধা বিলুপ্ত:</strong> অনুচ্ছেদ ১(৩)(ট) অনুযায়ী জাতীয়
+              বেতনস্কেল, ২০২৬ কার্যকর হইবার তারিখ অর্থাৎ ১ জুলাই ২০২৬ হইতে বিশেষ সুবিধা
+              বিলুপ্ত হইয়াছে বলিয়া গণ্য হইবে। তাই উপরের ভাতার অঙ্কে বিশেষ সুবিধা{' '}
+              <strong>অন্তর্ভুক্ত করিবেন না</strong>; উহা নিচের ঘরে আলাদাভাবে লিখুন —
+              ইহা মোট প্রাপ্তি হইতে বাদ যাইবে।
+            </div>
             <div className="grid">
               <div className="field">
                 <label htmlFor="oldall">
-                  ৩০ জুন ২০২৬ তারিখে প্রাপ্ত মোট মাসিক ভাতা (টাকা)
+                  ৩০ জুন ২০২৬ তারিখে প্রাপ্ত মোট মাসিক ভাতা (বিশেষ সুবিধা ব্যতীত)
                 </label>
                 <input
                   id="oldall"
@@ -418,9 +444,26 @@ export default function SalaryTool() {
                   onChange={(e) => setOldAllowance(e.target.value)}
                 />
               </div>
+              <div className="field">
+                <label htmlFor="oldsb">
+                  ৩০ জুন ২০২৬ তারিখে আহরিত বিশেষ সুবিধা (টাকা)
+                </label>
+                <input
+                  id="oldsb"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="যেমন: ২৪০০"
+                  value={oldSpecialBenefit}
+                  onChange={(e) => setOldSpecialBenefit(e.target.value)}
+                />
+                <span className="hint">
+                  বিদ্যমান প্রজ্ঞাপন (১ জুলাই ২০২৫ হইতে কার্যকর): গ্রেড ১–৯ এ মূল
+                  বেতনের ১০%, গ্রেড ১০–২০ এ ১৫%, ন্যূনতম ১৫০০ টাকা।
+                </span>
+              </div>
             </div>
-            {oldAllowanceAmount > 0 && (
-              <div className="table-wrap" style={{ marginTop: 12 }}>
+            {(oldAllowanceAmount > 0 || oldSBAmount > 0) && (
+              <div className="table-wrap stack" style={{ marginTop: 12 }}>
                 <table>
                   <thead>
                     <tr>
@@ -432,19 +475,48 @@ export default function SalaryTool() {
                   </thead>
                   <tbody>
                     <tr>
+                      <td>৩০ জুন ২০২৬ পর্যন্ত (বিশেষ সুবিধাসহ)</td>
+                      <td className="num" data-label="মূল বেতন">
+                        পূর্বের মূল বেতন
+                        <div className="rule-ref">জাতীয় বেতনস্কেল, ২০১৫</div>
+                      </td>
+                      <td className="num" data-label="ভাতাদি">
+                        {bnNumber(oldAllowanceAmount + oldSBAmount)}
+                        {oldSBAmount > 0 && (
+                          <div className="rule-ref">
+                            ইহার মধ্যে বিশেষ সুবিধা {bnNumber(oldSBAmount)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="num" data-label="মোট (গ্রস)">—</td>
+                    </tr>
+                    <tr>
                       <td>১ জুলাই ২০২৬ – ৩১ ডিসেম্বর ২০২৭</td>
-                      <td className="num">
+                      <td className="num" data-label="মূল বেতন">
                         পর্যায়ভিত্তিক
                         <div className="rule-ref">বেতন নির্ধারণ পাতা দেখুন</div>
                       </td>
-                      <td className="num">{bnNumber(oldAllowanceAmount)}</td>
-                      <td className="num">—</td>
+                      <td className="num" data-label="ভাতাদি">
+                        {bnNumber(oldAllowanceAmount)}
+                        {oldSBAmount > 0 && (
+                          <div className="rule-ref" style={{ color: 'var(--danger)' }}>
+                            বিশেষ সুবিধা − {bnNumber(oldSBAmount)} (বিলুপ্ত)
+                          </div>
+                        )}
+                      </td>
+                      <td className="num" data-label="মোট (গ্রস)">—</td>
                     </tr>
                     <tr className="total">
                       <td>১ জানুয়ারি ২০২৮ হইতে</td>
-                      <td className="num">{bnNumber(basic)}</td>
-                      <td className="num">{bnNumber(result.total)}</td>
-                      <td className="num">{bnNumber(basic + result.total)}</td>
+                      <td className="num" data-label="মূল বেতন">
+                        {bnNumber(basic)}
+                      </td>
+                      <td className="num" data-label="ভাতাদি">
+                        {bnNumber(result.total)}
+                      </td>
+                      <td className="num" data-label="মোট (গ্রস)">
+                        {bnNumber(basic + result.total)}
+                      </td>
                     </tr>
                   </tbody>
                 </table>

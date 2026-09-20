@@ -1,6 +1,12 @@
 import { calculateFixation, nextStep } from './fixation.ts';
 import { calculatePension } from './pension.ts';
 import { SCALE_2015, SCALE_2026 } from './scales.ts';
+import {
+  SPECIAL_BENEFIT,
+  specialBenefitForEmployee,
+  specialBenefitForPensioner,
+  specialBenefitImpact,
+} from './specialBenefit.ts';
 
 let fail = 0;
 function eq(label: string, got: unknown, want: unknown) {
@@ -71,6 +77,34 @@ eq('পেনশন ২৫০০০ (৬৫%)', p5.fixedNetPension, 41250);
 eq('পেনশন ২৫০০০ — ১ম পর্যায় হার', p5.phase1Percent, 40);
 const p6 = calculatePension({ currentNetPension: 50000, applyJuly2026Increment: false, incrementRate: 5, age: 65 });
 eq('পেনশন ৫০০০০ (৫৫%) → সর্বোচ্চ ৭০২০০', p6.fixedNetPension, 70200);
+
+// ── বিশেষ সুবিধা (১ জুলাই ২০২৫ হইতে কার্যকর প্রজ্ঞাপন) ─────────────────
+// গ্রেড ১–৯: মূল বেতনের ১০%; গ্রেড ১০–২০: ১৫%; ন্যূনতম ১৫০০ টাকা
+eq('বিশেষ সুবিধা — ৯ম গ্রেড হার', specialBenefitForEmployee(9, 30000).rate, 10);
+eq('বিশেষ সুবিধা — ৯ম গ্রেড অঙ্ক', specialBenefitForEmployee(9, 30000).amount, 3000);
+eq('বিশেষ সুবিধা — ১০ম গ্রেড হার', specialBenefitForEmployee(10, 16000).rate, 15);
+eq('বিশেষ সুবিধা — ১০ম গ্রেড অঙ্ক', specialBenefitForEmployee(10, 16000).amount, 2400);
+// ন্যূনতম সীমা: ২০তম গ্রেডের প্রারম্ভিক ধাপ ৮২৫০ × ১৫% = ১২৩৮ < ১৫০০
+eq('বিশেষ সুবিধা — ন্যূনতম ১৫০০ প্রযোজ্য', specialBenefitForEmployee(20, 8250).amount, 1500);
+eq('বিশেষ সুবিধা — ন্যূনতম প্রয়োগ চিহ্নিত', specialBenefitForEmployee(20, 8250).minimumApplied, true);
+eq('বিশেষ সুবিধা — কর্মচারীর ন্যূনতম', SPECIAL_BENEFIT.employeeMinimum, 1500);
+// পেনশনভোগী: নিট পেনশনের ১৫%, ন্যূনতম ৭৫০
+eq('বিশেষ সুবিধা — পেনশনভোগী অঙ্ক', specialBenefitForPensioner(15000).amount, 2250);
+eq('বিশেষ সুবিধা — পেনশনভোগী ন্যূনতম ৭৫০', specialBenefitForPensioner(4000).amount, 750);
+
+// ── বিলুপ্তি ও বকেয়া সমন্বয় (অনুচ্ছেদ ১(৩)(ট)) ───────────────────────
+// ১১তম গ্রেড / ১৩৭৯০ → ২৭৬০০; ১ম পর্যায়ে (৫০%) বৃদ্ধি ৬৯০৫
+{
+  const f = calculateFixation({ grade: 11, currentBasic: 13790, applyJuly2026Increment: true });
+  const sb = specialBenefitForEmployee(11, 13790); // ১৩৭৯০ × ১৫% = ২০৬৯
+  eq('সমন্বয় — বিশেষ সুবিধা অঙ্ক', sb.amount, 2069);
+  const im = specialBenefitImpact(f.phase1Pay - f.currentBasic, sb.amount, 3);
+  eq('সমন্বয় — মাসিক গ্রস বৃদ্ধি', f.phase1Pay - f.currentBasic, 6905);
+  eq('সমন্বয় — প্রকৃত নিট বৃদ্ধি', im.netIncrease, 6905 - 2069);
+  eq('সমন্বয় — ৩ মাসের গ্রস বকেয়া', im.grossArrear, 6905 * 3);
+  eq('সমন্বয় — সমন্বয়যোগ্য অঙ্ক', im.adjustment, 2069 * 3);
+  eq('সমন্বয় — নিট বকেয়া', im.netArrear, (6905 - 2069) * 3);
+}
 
 // স্কেল ডেটা অখণ্ডতা
 for (const [g, steps] of Object.entries(SCALE_2026)) {

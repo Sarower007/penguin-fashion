@@ -100,7 +100,7 @@ export default function IncrementTool() {
           প্রথম দিবস অর্থাৎ ১ জুলাই। নিচের হিসাব ১ জুলাই ২০২৬ তারিখে নির্ধারিত বেতনের
           পরবর্তী বৎসরসমূহের প্রক্ষেপণ।
         </p>
-        <div className="table-wrap">
+        <div className="table-wrap stack">
           <table>
             <thead>
               <tr>
@@ -113,11 +113,13 @@ export default function IncrementTool() {
             <tbody>
               <tr>
                 <td>১ জুলাই ২০২৬ (নির্ধারিত)</td>
-                <td className="num">
+                <td className="num" data-label="ধাপ">
                   {currentIndex >= 0 ? toBn(currentIndex + 1) : '—'}
                 </td>
-                <td className="num">{bnNumber(basic)}</td>
-                <td className="num">—</td>
+                <td className="num" data-label="মূল বেতন">
+                  {bnNumber(basic)}
+                </td>
+                <td className="num" data-label="বৃদ্ধি">—</td>
               </tr>
               {rows.map((r, i) => {
                 const prev = i === 0 ? basic : rows[i - 1].basic;
@@ -130,9 +132,15 @@ export default function IncrementTool() {
                         <span className="rule-ref"> · সর্বোচ্চ ধাপ</span>
                       )}
                     </td>
-                    <td className="num">{idx >= 0 ? toBn(idx + 1) : '—'}</td>
-                    <td className="num">{bnNumber(r.basic)}</td>
-                    <td className="num">{bnNumber(r.basic - prev)}</td>
+                    <td className="num" data-label="ধাপ">
+                      {idx >= 0 ? toBn(idx + 1) : '—'}
+                    </td>
+                    <td className="num" data-label="মূল বেতন">
+                      {bnNumber(r.basic)}
+                    </td>
+                    <td className="num" data-label="বৃদ্ধি">
+                      {bnNumber(r.basic - prev)}
+                    </td>
                   </tr>
                 );
               })}

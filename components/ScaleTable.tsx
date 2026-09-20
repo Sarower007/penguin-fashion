@@ -40,7 +40,7 @@ export default function ScaleTable() {
 
       <div className="card">
         <h3>অনুরূপ স্কেল (corresponding scale) — অনুচ্ছেদ ৩(১)</h3>
-        <div className="table-wrap table-fixed">
+        <div className="table-wrap table-fixed stack stack-block">
           <table>
             <thead>
               <tr>
@@ -56,16 +56,20 @@ export default function ScaleTable() {
             <tbody>
               {grades.map((g) => (
                 <tr key={g}>
-                  <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
-                    {bnOrdinal(g)}
-                  </td>
-                  <td style={{ fontSize: '.9rem' }}>
+                  <td style={{ fontWeight: 600 }}>{bnOrdinal(g)} গ্রেড</td>
+                  <td
+                    data-label="জাতীয় বেতনস্কেল, ২০১৫"
+                    style={{ fontSize: '.9rem' }}
+                  >
                     টাকা{' '}
                     {SCALE_2015[g].length === 1
                       ? `${toBn(SCALE_2015[g][0])} (নির্ধারিত)`
                       : SCALE_2015[g].map((s) => toBn(s)).join('-')}
                   </td>
-                  <td style={{ fontSize: '.9rem' }}>
+                  <td
+                    data-label="জাতীয় বেতনস্কেল, ২০২৬"
+                    style={{ fontSize: '.9rem' }}
+                  >
                     টাকা{' '}
                     {SCALE_2026[g].length === 1
                       ? `${toBn(SCALE_2026[g][0])} (নির্ধারিত)`
@@ -83,7 +87,7 @@ export default function ScaleTable() {
           <h3>
             {bnOrdinal(selected)} গ্রেডের ধাপসমূহ — পাশাপাশি তুলনা
           </h3>
-          <div className="table-wrap">
+          <div className="table-wrap stack">
             <table>
               <thead>
                 <tr>
@@ -105,11 +109,17 @@ export default function ScaleTable() {
                   const b = SCALE_2026[selected][i];
                   return (
                     <tr key={i}>
-                      <td className="num">{toBn(i + 1)}</td>
-                      <td className="num">{a ? bnNumber(a) : '—'}</td>
-                      <td className="num">{b ? bnNumber(b) : '—'}</td>
-                      <td className="num">{a && b ? bnNumber(b - a) : '—'}</td>
-                      <td className="num">
+                      <td className="num" data-label="ধাপ">{toBn(i + 1)}</td>
+                      <td className="num" data-label="জাতীয় বেতনস্কেল, ২০১৫">
+                        {a ? bnNumber(a) : '—'}
+                      </td>
+                      <td className="num" data-label="জাতীয় বেতনস্কেল, ২০২৬">
+                        {b ? bnNumber(b) : '—'}
+                      </td>
+                      <td className="num" data-label="পার্থক্য">
+                        {a && b ? bnNumber(b - a) : '—'}
+                      </td>
+                      <td className="num" data-label="বৃদ্ধির হার">
                         {a && b ? `${bnNumber(((b - a) / a) * 100, 1)}%` : '—'}
                       </td>
                     </tr>
@@ -127,7 +137,7 @@ export default function ScaleTable() {
 
       <div className="card">
         <h3>নির্ধারিত বেতনের পদসমূহ (অনুচ্ছেদ ৩(২))</h3>
-        <div className="table-wrap">
+        <div className="table-wrap stack">
           <table>
             <thead>
               <tr>
@@ -139,12 +149,16 @@ export default function ScaleTable() {
               {FIXED_PAY_POSTS.map((p) => (
                 <tr key={p.id}>
                   <td>{p.label}</td>
-                  <td className="num">{bnNumber(p.pay2026)} টাকা (নির্ধারিত)</td>
+                  <td className="num" data-label="জাতীয় বেতনস্কেল, ২০২৬ এ বেতন">
+                    {bnNumber(p.pay2026)} টাকা (নির্ধারিত)
+                  </td>
                 </tr>
               ))}
               <tr>
                 <td>১ম গ্রেড (অনুচ্ছেদ ৩(১))</td>
-                <td className="num">{bnNumber(SCALE_2026[1][0])} টাকা (নির্ধারিত)</td>
+                <td className="num" data-label="জাতীয় বেতনস্কেল, ২০২৬ এ বেতন">
+                  {bnNumber(SCALE_2026[1][0])} টাকা (নির্ধারিত)
+                </td>
               </tr>
             </tbody>
           </table>
