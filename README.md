@@ -62,7 +62,7 @@ npm run build   # প্রোডাকশন বিল্ড
 
 ## প্রযুক্তি
 
-Next.js 15 (App Router) · React 19 · TypeScript · বাহ্যিক CSS ফ্রেমওয়ার্ক ছাড়া
+Next.js 16 (App Router) · React 19 · TypeScript · বাহ্যিক CSS ফ্রেমওয়ার্ক ছাড়া
 হাতে লেখা CSS (লাইট/ডার্ক মোড, মোবাইল রেসপনসিভ, প্রিন্ট-ফ্রেন্ডলি)।
 
 ## দাবি অস্বীকার
