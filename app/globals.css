@@ -285,6 +285,79 @@ select { cursor: pointer; }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 
+/* segmented control */
+.seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.seg button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: .93rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.seg button:hover { color: var(--ink); }
+
+.seg button[aria-checked='true'] {
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+/* collapsible section */
+.disclosure {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  padding: 10px 12px;
+}
+
+.disclosure > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .94rem;
+  color: var(--ink-soft);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.disclosure > summary::-webkit-details-marker { display: none; }
+
+.disclosure > summary::before {
+  content: '▸';
+  color: var(--brand);
+  transition: transform .15s ease;
+}
+
+.disclosure[open] > summary::before { content: '▾'; }
+
+.check small {
+  display: block;
+  margin-top: 3px;
+  font-size: .82rem;
+  font-weight: 400;
+  color: var(--ink-mute);
+  line-height: 1.55;
+}
+
 /* ---------- Result ---------- */
 .headline {
   background: linear-gradient(135deg, var(--brand-soft), var(--bg-soft));
@@ -552,6 +625,8 @@ td.num, th.num {
   .stat .stat-label { font-size: .8rem; }
   .tool-grid { grid-template-columns: 1fr; }
   .btn { width: 100%; justify-content: center; padding: 12px 18px; }
+  .seg { flex-direction: column; border-radius: var(--radius-sm); }
+  .seg button { border-radius: var(--radius-sm); }
   .btn-row { flex-direction: column; }
   .dev-card { flex-direction: column; align-items: flex-start; }
   .dev-card > div:last-child { text-align: left !important; }

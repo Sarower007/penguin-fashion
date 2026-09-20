@@ -10,6 +10,7 @@ import {
   houseRentBand,
   yearlyBenefits,
 } from '@/lib/allowances';
+import { buildPayRow } from '@/lib/deductions';
 import { bnNumber, bnOrdinal, bnTaka, parseAmount, toBn } from '@/lib/bn';
 
 export default function SalaryTool() {
@@ -33,6 +34,8 @@ export default function SalaryTool() {
   const [trainingDeputation, setTrainingDeputation] = useState(false);
   const [oldAllowance, setOldAllowance] = useState('');
   const [oldSpecialBenefit, setOldSpecialBenefit] = useState('');
+  const [gpfPercent, setGpfPercent] = useState('');
+  const [otherDeduction, setOtherDeduction] = useState('');
 
   const basic =
     basicMode === 'step' ? stepValue : (parseAmount(customBasic) ?? 0);
@@ -67,6 +70,14 @@ export default function SalaryTool() {
   const yearly = basic ? yearlyBenefits(basic) : null;
   const oldAllowanceAmount = parseAmount(oldAllowance) ?? 0;
   const oldSBAmount = Math.max(0, parseAmount(oldSpecialBenefit) ?? 0);
+  const deductions = {
+    gpfPercent: Math.max(0, parseAmount(gpfPercent) ?? 0),
+    otherDeduction: Math.max(0, parseAmount(otherDeduction) ?? 0),
+  };
+  const netRow =
+    result && basic > 0
+      ? buildPayRow('', basic, result.total, 0, deductions)
+      : null;
 
   function handleGradeChange(g: GradeNo) {
     setGrade(g);
@@ -359,6 +370,73 @@ export default function SalaryTool() {
               ১২(১) ও ১৫(৬))। ১ জুলাই ২০২৬ হইতে ৩১ ডিসেম্বর ২০২৭ পর্যন্ত ভাতাদি ৩০ জুন
               ২০২৬ তারিখে প্রাপ্য অঙ্কেই প্রদেয় হইবে।
             </div>
+          </div>
+
+          <div className="card">
+            <h3>কর্তন ও নিট বেতন</h3>
+            <p style={{ marginTop: -6, color: 'var(--ink-soft)', fontSize: '.92rem' }}>
+              এই আদেশে কর্তনের হার নির্ধারিত নাই — জিপিএফ চাঁদার হার কর্মচারী নিজে
+              নির্ধারণ করেন এবং আয়কর আয়কর আইন, ২০২৩ অনুযায়ী (অনুচ্ছেদ ৩১)। নিজের
+              বেতন বিলের অঙ্ক বসাইয়া হাতে পাওয়া নিট বেতন দেখুন।
+            </p>
+            <div className="grid">
+              <div className="field">
+                <label htmlFor="sgpf">জিপিএফ চাঁদা (মূল বেতনের %)</label>
+                <input
+                  id="sgpf"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="যেমন: ১০"
+                  value={gpfPercent}
+                  onChange={(e) => setGpfPercent(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="soded">অন্যান্য মাসিক কর্তন (টাকা)</label>
+                <input
+                  id="soded"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="যেমন: ৫০০"
+                  value={otherDeduction}
+                  onChange={(e) => setOtherDeduction(e.target.value)}
+                />
+                <span className="hint">
+                  কল্যাণ তহবিল ও যৌথবীমা, রাজস্ব স্ট্যাম্প, আয়কর, ঋণের কিস্তি ইত্যাদি।
+                </span>
+              </div>
+            </div>
+            {netRow && (
+              <div className="table-wrap stack" style={{ marginTop: 12 }}>
+                <table>
+                  <tbody>
+                    <tr>
+                      <td>মোট মাসিক প্রাপ্য (গ্রস)</td>
+                      <td className="num">{bnNumber(netRow.gross)}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        জিপিএফ চাঁদা ({bnNumber(deductions.gpfPercent, 0)}% ×{' '}
+                        {bnNumber(basic)})
+                      </td>
+                      <td className="num" style={{ color: 'var(--danger)' }}>
+                        {netRow.gpf > 0 ? `− ${bnNumber(netRow.gpf)}` : '—'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>অন্যান্য কর্তন</td>
+                      <td className="num" style={{ color: 'var(--danger)' }}>
+                        {netRow.other > 0 ? `− ${bnNumber(netRow.other)}` : '—'}
+                      </td>
+                    </tr>
+                    <tr className="total">
+                      <td>হাতে প্রাপ্য নিট বেতন</td>
+                      <td className="num">{bnTaka(netRow.net)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {yearly && (
