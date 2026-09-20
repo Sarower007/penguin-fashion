@@ -7,6 +7,11 @@ import {
   calculatePension,
 } from '@/lib/pension';
 import { MEDICAL_PENSIONER } from '@/lib/allowances';
+import {
+  SPECIAL_BENEFIT,
+  specialBenefitForPensioner,
+  specialBenefitImpact,
+} from '@/lib/specialBenefit';
 import { bnNumber, bnTaka, parseAmount, toBn } from '@/lib/bn';
 
 export default function PensionTool() {
@@ -16,9 +21,19 @@ export default function PensionTool() {
   const [incrementRate, setIncrementRate] = useState(
     toBn(DEFAULT_PENSION_INCREMENT_RATE),
   );
+  const [sbMode, setSbMode] = useState<'auto' | 'manual'>('auto');
+  const [sbManual, setSbManual] = useState('');
+  const [arrearMonths, setArrearMonths] = useState('৩');
 
   const current = parseAmount(netPension) ?? 0;
   const rate = parseAmount(incrementRate) ?? DEFAULT_PENSION_INCREMENT_RATE;
+
+  const autoSB = current > 0 ? specialBenefitForPensioner(current) : null;
+  const specialBenefit =
+    sbMode === 'auto'
+      ? (autoSB?.amount ?? 0)
+      : Math.max(0, parseAmount(sbManual) ?? 0);
+  const months = Math.max(0, Math.floor(parseAmount(arrearMonths) ?? 0));
 
   const result = useMemo(() => {
     if (!current || current <= 0) return null;
@@ -71,6 +86,56 @@ export default function PensionTool() {
             <span className="hint">
               এই আদেশে পেনশনের বার্ষিক বৃদ্ধির হার উল্লেখ নাই; বিদ্যমান প্রচলিত হার
               (৫%) পূর্বনির্ধারিত রাখা হইয়াছে।
+            </span>
+          </div>
+
+          <div className="field">
+            <label htmlFor="psbmode">বিশেষ সুবিধা (৩০ জুন ২০২৬ তারিখে আহরিত)</label>
+            <select
+              id="psbmode"
+              value={sbMode}
+              onChange={(e) => setSbMode(e.target.value as 'auto' | 'manual')}
+            >
+              <option value="auto">প্রজ্ঞাপন অনুযায়ী স্বয়ংক্রিয় হিসাব</option>
+              <option value="manual">নিজে অঙ্ক লিখিব</option>
+            </select>
+            <span className="hint">
+              {autoSB
+                ? `নিট পেনশনের ${toBn(autoSB.rate)}% = ${bnNumber(autoSB.calculated)} টাকা${
+                    autoSB.minimumApplied
+                      ? `; ন্যূনতম ৭৫০ টাকা প্রযোজ্য হওয়ায় ${bnNumber(autoSB.amount)} টাকা`
+                      : ''
+                  }`
+                : 'নিট পেনশনের অঙ্ক দিন।'}
+            </span>
+          </div>
+
+          {sbMode === 'manual' && (
+            <div className="field">
+              <label htmlFor="psbamount">আহরিত মাসিক বিশেষ সুবিধা (টাকা)</label>
+              <input
+                id="psbamount"
+                type="text"
+                inputMode="numeric"
+                placeholder={autoSB ? toBn(autoSB.amount) : 'যেমন: ২২৫০'}
+                value={sbManual}
+                onChange={(e) => setSbManual(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="field">
+            <label htmlFor="parrear">বকেয়ার মাস সংখ্যা</label>
+            <input
+              id="parrear"
+              type="text"
+              inputMode="numeric"
+              value={arrearMonths}
+              onChange={(e) => setArrearMonths(e.target.value)}
+            />
+            <span className="hint">
+              অনুচ্ছেদ ১(৩)(জ): ১ জুলাই ২০২৬ হইতে আদেশ জারির তারিখ পর্যন্ত সময়ের নিট
+              পেনশন বকেয়া হিসাবে প্রাপ্য।
             </span>
           </div>
         </div>
@@ -198,41 +263,53 @@ export default function PensionTool() {
                   <tr>
                     <th>সময়কাল</th>
                     <th className="num">হার</th>
-                    <th className="num">বৃদ্ধির অঙ্ক</th>
                     <th className="num">প্রদেয় নিট পেনশন</th>
+                    <th className="num">মোট বৃদ্ধি</th>
+                    <th className="num">বিশেষ সুবিধা বিলুপ্ত (−)</th>
+                    <th className="num">প্রকৃত নিট বৃদ্ধি</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>১ জুলাই ২০২৬ – ৩১ ডিসেম্বর ২০২৬</td>
-                    <td className="num">{toBn(result.phase1Percent)}%</td>
-                    <td className="num">
-                      {bnNumber(result.phase1Pension - result.currentNetPension)}
-                    </td>
-                    <td className="num">
-                      <strong>{bnNumber(result.phase1Pension)}</strong>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>১ জানুয়ারি ২০২৭ – ৩০ জুন ২০২৭</td>
-                    <td className="num">{toBn(result.phase2Percent)}%</td>
-                    <td className="num">
-                      {bnNumber(result.phase2Pension - result.currentNetPension)}
-                    </td>
-                    <td className="num">
-                      <strong>{bnNumber(result.phase2Pension)}</strong>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>১ জুলাই ২০২৭ হইতে (বার্ষিক বৃদ্ধিসহ শতভাগ)</td>
-                    <td className="num">১০০%</td>
-                    <td className="num">
-                      {bnNumber(result.phase3Pension - result.currentNetPension)}
-                    </td>
-                    <td className="num">
-                      <strong>{bnNumber(result.phase3Pension)}</strong>
-                    </td>
-                  </tr>
+                  {[
+                    {
+                      key: 'p1',
+                      period: '১ জুলাই ২০২৬ – ৩১ ডিসেম্বর ২০২৬',
+                      rate: `${toBn(result.phase1Percent)}%`,
+                      pension: result.phase1Pension,
+                    },
+                    {
+                      key: 'p2',
+                      period: '১ জানুয়ারি ২০২৭ – ৩০ জুন ২০২৭',
+                      rate: `${toBn(result.phase2Percent)}%`,
+                      pension: result.phase2Pension,
+                    },
+                    {
+                      key: 'p3',
+                      period: '১ জুলাই ২০২৭ হইতে (বার্ষিক বৃদ্ধিসহ শতভাগ)',
+                      rate: '১০০%',
+                      pension: result.phase3Pension,
+                    },
+                  ].map((row) => {
+                    const gross = row.pension - result.currentNetPension;
+                    const net = gross - specialBenefit;
+                    return (
+                      <tr key={row.key}>
+                        <td>{row.period}</td>
+                        <td className="num">{row.rate}</td>
+                        <td className="num">
+                          <strong>{bnNumber(row.pension)}</strong>
+                        </td>
+                        <td className="num">{bnNumber(gross)}</td>
+                        <td className="num">{bnNumber(specialBenefit)}</td>
+                        <td
+                          className="num"
+                          style={net < 0 ? { color: 'var(--danger)' } : undefined}
+                        >
+                          <strong>{bnNumber(net)}</strong>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -243,6 +320,125 @@ export default function PensionTool() {
               হইবেন (অনুচ্ছেদ ১(৩)(জ))।
             </p>
           </div>
+
+          <div className="card">
+            <h3>বিশেষ সুবিধা বিলুপ্তি ও সমন্বয় (অনুচ্ছেদ ৮(১)(গ) ও ১(৩)(ট))</h3>
+            <div className="alert alert-warn">
+              নিট পেনশনপ্রাপ্ত অবসরভোগী ও আজীবন পারিবারিক পেনশনভোগীর ক্ষেত্রে জাতীয়
+              বেতনস্কেল, ২০২৬ কার্যকর হইবার তারিখ অর্থাৎ <strong>১ জুলাই ২০২৬</strong>{' '}
+              হইতে <strong>বিশেষ সুবিধা বিলুপ্ত</strong> হইবে। ১ জুলাই ২০২৬ হইতে আদেশ
+              জারির তারিখ পর্যন্ত আহরিত বিশেষ সুবিধা প্রাপ্য বকেয়ার সহিত সমন্বয় করিতে
+              হইবে।
+            </div>
+            <div className="table-wrap">
+              <table>
+                <tbody>
+                  <tr>
+                    <td>বিদ্যমান হার (১ জুলাই ২০২৫ হইতে কার্যকর প্রজ্ঞাপন)</td>
+                    <td className="num">
+                      নিট পেনশনের {toBn(SPECIAL_BENEFIT.pensionerRate)}%, ন্যূনতম{' '}
+                      {bnNumber(SPECIAL_BENEFIT.pensionerMinimum)} টাকা
+                    </td>
+                  </tr>
+                  {autoSB && (
+                    <tr>
+                      <td>
+                        হার প্রয়োগে প্রাপ্ত অঙ্ক ({bnNumber(result.currentNetPension)}{' '}
+                        × {toBn(autoSB.rate)}%)
+                      </td>
+                      <td className="num">{bnNumber(autoSB.calculated)} টাকা</td>
+                    </tr>
+                  )}
+                  {autoSB?.minimumApplied && (
+                    <tr>
+                      <td>ন্যূনতম সীমা প্রযোজ্য</td>
+                      <td className="num">
+                        {bnNumber(SPECIAL_BENEFIT.pensionerMinimum)} টাকা
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="total">
+                    <td>
+                      ৩০ জুন ২০২৬ তারিখে আহরিত মাসিক বিশেষ সুবিধা
+                      {sbMode === 'manual' && ' (নিজে প্রদত্ত)'}
+                    </td>
+                    <td className="num">{bnTaka(specialBenefit)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {months > 0 &&
+            (() => {
+              const impact = specialBenefitImpact(
+                result.phase1Pension - result.currentNetPension,
+                specialBenefit,
+                months,
+              );
+              return (
+                <div className="card">
+                  <h3>বকেয়া হিসাব ও বিশেষ সুবিধার সমন্বয়</h3>
+                  <div className="table-wrap">
+                    <table>
+                      <tbody>
+                        <tr>
+                          <td>
+                            মাসিক পেনশনবৃদ্ধি (১ম পর্যায়ে{' '}
+                            {toBn(result.phase1Percent)}%)
+                          </td>
+                          <td className="num">
+                            {bnNumber(
+                              result.phase1Pension - result.currentNetPension,
+                            )}{' '}
+                            টাকা
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>মাস সংখ্যা</td>
+                          <td className="num">{toBn(months)} মাস</td>
+                        </tr>
+                        <tr>
+                          <td>মোট বকেয়া (সমন্বয়ের পূর্বে)</td>
+                          <td className="num">
+                            {bnNumber(impact.grossArrear)} টাকা
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            বাদ: আহরিত বিশেষ সুবিধা ({bnNumber(specialBenefit)} ×{' '}
+                            {toBn(months)} মাস)
+                          </td>
+                          <td className="num" style={{ color: 'var(--danger)' }}>
+                            − {bnNumber(impact.adjustment)} টাকা
+                          </td>
+                        </tr>
+                        <tr className="total">
+                          <td>সমন্বয়ের পর প্রকৃত প্রাপ্য বকেয়া</td>
+                          <td
+                            className="num"
+                            style={
+                              impact.netArrear < 0
+                                ? { color: 'var(--danger)' }
+                                : undefined
+                            }
+                          >
+                            {bnTaka(impact.netArrear)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  {impact.netArrear < 0 && (
+                    <div className="alert alert-danger" style={{ marginTop: 12 }}>
+                      আহরিত বিশেষ সুবিধার অঙ্ক প্রাপ্য বকেয়া অপেক্ষা বেশি হওয়ায়
+                      সমন্বয়ের পর ফলাফল ঋণাত্মক; অতিরিক্ত পরিশোধিত অঙ্ক পরবর্তী পেনশন
+                      হইতে সমন্বয়যোগ্য হইবে।
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
           <div className="card">
             <h3>পেনশনভোগীর অন্যান্য প্রাপ্যতা</h3>
